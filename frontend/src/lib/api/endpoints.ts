@@ -1,0 +1,118 @@
+import { api } from './client';
+import type {
+  ApiSuccess,
+  AuthResult,
+  AuthUser,
+  Lead,
+  LeadActivity,
+  LeadListItem,
+  LeadNote,
+  LeadSource,
+  LeadStats,
+  Office,
+  Permission,
+  PipelineColumn,
+  PipelineStage,
+  Role,
+  User,
+} from './types';
+
+// ── Auth ──────────────────────────────────────────────
+export const authApi = {
+  login: (email: string, password: string) =>
+    api.post<ApiSuccess<AuthResult>>('/auth/login', { email, password }).then((r) => r.data.data),
+  me: () => api.get<ApiSuccess<AuthUser>>('/auth/me').then((r) => r.data.data),
+  logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
+};
+
+// ── Users ─────────────────────────────────────────────
+export interface UserListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  roleId?: string;
+  officeId?: string;
+}
+export const usersApi = {
+  list: (params: UserListParams) =>
+    api.get<ApiSuccess<User[]>>('/users', { params }).then((r) => r.data),
+  create: (body: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone?: string;
+    roleId: string;
+    officeId?: string;
+  }) => api.post<ApiSuccess<User>>('/users', body).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<User>>(`/users/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/users/${id}`),
+};
+
+// ── Roles ─────────────────────────────────────────────
+export const rolesApi = {
+  list: () => api.get<ApiSuccess<Role[]>>('/roles').then((r) => r.data.data),
+  permissions: () => api.get<ApiSuccess<Permission[]>>('/roles/permissions').then((r) => r.data.data),
+  setPermissions: (id: string, permissions: string[]) =>
+    api.patch<ApiSuccess<Role>>(`/roles/${id}/permissions`, { permissions }).then((r) => r.data.data),
+};
+
+// ── Leads (Phase 2) ───────────────────────────────────
+export interface LeadListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  stageId?: string;
+  status?: string;
+  priority?: string;
+  assignedToId?: string;
+  leadSourceId?: string;
+  sort?: string;
+  order?: string;
+}
+export const leadsApi = {
+  list: (params: LeadListParams) =>
+    api.get<ApiSuccess<LeadListItem[]>>('/leads', { params }).then((r) => r.data),
+  stats: () => api.get<ApiSuccess<LeadStats>>('/leads/stats').then((r) => r.data.data),
+  get: (id: string) => api.get<ApiSuccess<Lead>>(`/leads/${id}`).then((r) => r.data.data),
+  create: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<Lead>>('/leads', body).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<Lead>>(`/leads/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/leads/${id}`),
+  assign: (id: string, assignedToId: string | null, autoAssign?: boolean) =>
+    api.patch<ApiSuccess<Lead>>(`/leads/${id}/assign`, { assignedToId, autoAssign }).then((r) => r.data.data),
+  moveStage: (id: string, stageId: string, reason?: string) =>
+    api.patch<ApiSuccess<Lead>>(`/leads/${id}/stage`, { stageId, reason }).then((r) => r.data.data),
+  markLost: (id: string, lostReason: string) =>
+    api.patch<ApiSuccess<Lead>>(`/leads/${id}/lost`, { lostReason }).then((r) => r.data.data),
+  activities: (id: string) =>
+    api.get<ApiSuccess<LeadActivity[]>>(`/leads/${id}/activities`).then((r) => r.data.data),
+  addActivity: (id: string, body: Record<string, unknown>) =>
+    api.post<ApiSuccess<LeadActivity>>(`/leads/${id}/activities`, body).then((r) => r.data.data),
+  notes: (id: string) => api.get<ApiSuccess<LeadNote[]>>(`/leads/${id}/notes`).then((r) => r.data.data),
+  addNote: (id: string, body: string, isPinned?: boolean) =>
+    api.post<ApiSuccess<LeadNote>>(`/leads/${id}/notes`, { body, isPinned }).then((r) => r.data.data),
+};
+
+export const pipelineApi = {
+  stages: (track: 'LEAD' | 'DEAL' = 'LEAD') =>
+    api.get<ApiSuccess<PipelineStage[]>>('/pipeline/stages', { params: { track } }).then((r) => r.data.data),
+  board: () => api.get<ApiSuccess<PipelineColumn[]>>('/pipeline/board').then((r) => r.data.data),
+};
+
+export const sourcesApi = {
+  list: () => api.get<ApiSuccess<LeadSource[]>>('/sources').then((r) => r.data.data),
+};
+
+// ── Offices ───────────────────────────────────────────
+export const officesApi = {
+  list: (params?: { page?: number; limit?: number; search?: string }) =>
+    api.get<ApiSuccess<Office[]>>('/offices', { params }).then((r) => r.data),
+  create: (body: { name: string; code: string; timezone?: string; phone?: string }) =>
+    api.post<ApiSuccess<Office>>('/offices', body).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<Office>>(`/offices/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/offices/${id}`),
+};

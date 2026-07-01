@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+.vite/
+
+# Env & secrets (NEVER commit — keep .env.example only)
+.env
+.env.local
+.env.*.local
+**/.env
+!**/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Prisma local artifacts
+**/prisma/*.db
+**/prisma/*.db-journal
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Claude local settings (keep launch.json shared)
+.claude/settings.local.json
+
+# Coverage / test
+coverage/
