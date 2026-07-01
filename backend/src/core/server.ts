@@ -3,6 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
+import { buildOpenApiDocument } from './openapi/registry';
 import { env, corsOrigins } from './config/env';
 import { logger } from './logger/logger';
 import { requestId } from './middlewares/requestId.middleware';
@@ -31,6 +33,17 @@ export function createServer(): Express {
       genReqId: (req) => (req as { id?: string }).id ?? '',
       autoLogging: { ignore: (req) => req.url === `${env.API_PREFIX}/health` },
     }),
+  );
+
+  // API docs (Swagger UI) — public, generated from Zod schemas. Mount before rate limiter.
+  const openApiDoc = buildOpenApiDocument();
+  app.get(`${env.API_PREFIX}/docs.json`, (_req, res) => res.json(openApiDoc));
+  app.use(
+    `${env.API_PREFIX}/docs`,
+    // Helmet's CSP blocks Swagger UI's inline assets; relax for this route only.
+    helmet({ contentSecurityPolicy: false }),
+    swaggerUi.serve,
+    swaggerUi.setup(openApiDoc, { customSiteTitle: 'Kratos CRM API Docs' }),
   );
 
   app.use(globalRateLimiter);
