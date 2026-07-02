@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150" role="img" aria-label="Kratos Sustainability">
+  <!-- stem rising from the plug -->
+  <path d="M60 62 C60 40 58 30 66 18" fill="none" stroke="#175c4c" stroke-width="7" stroke-linecap="round"/>
+  <!-- left leaf -->
+  <path d="M56 34 C36 30 24 16 26 2 C44 4 56 16 56 34 Z" fill="#6abf2e"/>
+  <!-- right leaf -->
+  <path d="M64 26 C80 24 92 14 92 2 C76 2 64 10 64 26 Z" fill="#57a824"/>
+  <!-- rounded square frame -->
+  <rect x="22" y="58" width="76" height="76" rx="16" fill="none" stroke="#6abf2e" stroke-width="9"/>
+  <!-- plug body -->
+  <path d="M45 84 C45 78 50 74 56 74 L64 74 C70 74 75 78 75 84 L75 96 C75 103 70 108 63 108 L57 108 C50 108 45 103 45 96 Z" fill="#175c4c"/>
+  <!-- plug cable into frame top -->
+  <rect x="56.5" y="58" width="7" height="18" rx="3" fill="#175c4c"/>
+  <!-- prongs -->
+  <rect x="50" y="108" width="6" height="12" rx="2.5" fill="#175c4c"/>
+  <rect x="64" y="108" width="6" height="12" rx="2.5" fill="#175c4c"/>
+</svg>

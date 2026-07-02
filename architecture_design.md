@@ -5,6 +5,32 @@
 > **Focus:** **Lead capture → assignment → sales conversion → close**, with **source tracking** and **landing pages**.
 > **Stance:** This document is the contract. Code is generated *from* it.
 
+## Implementation Status (as of 2 Jul 2026)
+
+**Phases 1–6 are built, verified end-to-end, and deployed against the live remote database** (`75.119.149.137`, db `kratos-backend`). Repo: [github.com/aaabir2a/kratos-energy-backend](https://github.com/aaabir2a/kratos-energy-backend), branch `main`.
+
+| Phase | Delivered | Status |
+|---|---|---|
+| 1 | JWT auth + rotating refresh (reuse detection), 4-role RBAC (roles/permissions tables), offices, users, audit log | ✅ |
+| 2 | Leads (dedupe, scoring fields), LEAD pipeline + kanban, **round-robin auto-assignment** (load-balanced per office), activities/notes/status history, role-scoped visibility | ✅ |
+| 3 | `lead_attributions` (immutable first/last touch), UTM/gclid/fbclid capture, public `/leads/submit` (rate-limited + honeypot), `/intake/chatbot` + `/intake/social/:platform` webhooks (`x-webhook-secret`), campaigns + cost-per-lead, source→conversion reports | ✅ |
+| 4 | Deals: `/leads/:id/convert`, snapshot-priced deal items, DEAL pipeline (Quoted→Negotiation→Closed Won/Lost), win/lose endpoints, closed-deal locking, stats | ✅ |
+| 5 | Landing pages (PDF schema + status/SEO/metrics), **dynamic form engine** (validates `fields_schema` server-side per PDF rule 3, per-field 400s), form versioning, public `/p/:slug` delivery + React page, view/conversion metrics | ✅ |
+| 6 | Catalog per PDF schema (`products`/`packages`/`package_products`), package builder, **public website API** consumed by [kratos-energy.com](https://www.kratos-energy.com/): `GET /public/products`, `GET /public/packages`, `GET /public/packages/:slug` | ✅ |
+| 7 | Notifications (email/SMS/in-app) | Planned |
+| 8 | Analytics & reporting dashboards | Planned |
+| 9 | Production hardening (Redis, partitioning, monitoring, backups) | Planned |
+
+**Extras delivered:** Swagger/OpenAPI at `/api/v1/docs` generated from Zod schemas; frontend admin app (React + shadcn/ui, dark mode) with Dashboard, Leads, Pipeline, Sources, Deals, Marketing, and a **Website Settings** section (Products, Packages); Kratos Sustainability branding.
+
+**Documented divergences from this blueprint:**
+- `products.final_price` is computed in the service layer (`base − state_rebate − federal_rebate`) rather than a Postgres `GENERATED` column — identical API output, avoids Prisma migration drift.
+- Password hashing uses bcryptjs (argon2id swap deferred to Phase 9).
+- Redis optional in dev (rate limiting falls back to in-memory); BullMQ/MinIO not yet wired (Phase 7+).
+- CORS allowlist includes `https://www.kratos-energy.com` for the public catalog API.
+
+---
+
 ## Scope (v2.0)
 
 **In scope**

@@ -4,7 +4,6 @@ import {
   Users,
   ShieldCheck,
   Building2,
-  Sun,
   Megaphone,
   Target,
   Handshake,
@@ -61,13 +60,11 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
-      <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent text-white">
-          <Sun className="h-5 w-5" />
-        </div>
-        <div className="leading-tight">
-          <p className="text-sm font-semibold text-white">Kratos Energy</p>
-          <p className="text-[11px] text-sidebar-foreground/70">Solar CRM</p>
+      <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border bg-white/95 px-5">
+        <img src="/logo.svg" alt="Kratos Sustainability" className="h-10 w-auto" />
+        <div className="leading-tight font-bold uppercase tracking-wide text-[13px]">
+          <p className="text-[#6abf2e]">Kratos</p>
+          <p className="text-[#175c4c]">Sustainability</p>
         </div>
       </div>
 
@@ -111,7 +108,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-sidebar-border px-6 py-3 text-[11px] text-sidebar-foreground/50">
-        v1.0 · Phase 1
+        v1.0 · Phases 1–6 live
       </div>
     </aside>
   );

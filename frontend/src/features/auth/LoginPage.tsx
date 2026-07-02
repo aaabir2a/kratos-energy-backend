@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Navigate } from 'react-router-dom';
-import { Sun, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,12 +34,12 @@ export function LoginPage() {
         <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-white">
-            <Sun className="h-6 w-6" />
+          <div className="rounded-xl bg-white p-1.5">
+            <img src="/logo.svg" alt="Kratos Sustainability" className="h-11 w-auto" />
           </div>
-          <div>
-            <p className="text-lg font-semibold">Kratos Energy</p>
-            <p className="text-xs text-white/60">Solar CRM</p>
+          <div className="font-bold uppercase tracking-wide leading-tight">
+            <p className="text-[#6abf2e]">Kratos</p>
+            <p className="text-white">Sustainability</p>
           </div>
         </div>
         <div className="relative space-y-4">
@@ -60,10 +60,10 @@ export function LoginPage() {
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-              <Sun className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-semibold">Kratos Energy</span>
+            <img src="/logo.svg" alt="Kratos Sustainability" className="h-10 w-auto" />
+            <span className="font-bold uppercase tracking-wide">
+              <span className="text-[#6abf2e]">Kratos</span> <span className="text-[#175c4c] dark:text-emerald-100">Sustainability</span>
+            </span>
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>

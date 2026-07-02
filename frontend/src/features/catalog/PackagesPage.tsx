@@ -228,9 +228,13 @@ export function PackagesPage() {
         }
       />
 
-      <div className="mb-4 flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
         <Link2 className="h-4 w-4" />
-        Website API:&nbsp;
+        Consumed by{' '}
+        <a href="https://www.kratos-energy.com/" target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+          kratos-energy.com
+        </a>{' '}
+        via&nbsp;
         <code className="rounded bg-background px-1.5 py-0.5 text-xs">GET /api/v1/public/products</code>&nbsp;·&nbsp;
         <code className="rounded bg-background px-1.5 py-0.5 text-xs">GET /api/v1/public/packages</code>
       </div>

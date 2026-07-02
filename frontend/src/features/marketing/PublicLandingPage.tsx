@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Sun, Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -124,7 +124,7 @@ export function PublicLandingPage() {
   if (!page.data) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-2 p-6 text-center">
-        <Sun className="h-10 w-10 text-primary" />
+        <img src="/logo.svg" alt="Kratos Sustainability" className="h-12 w-auto" />
         <h1 className="text-xl font-semibold">Page not found</h1>
         <p className="text-sm text-muted-foreground">This page may have been unpublished.</p>
       </div>
@@ -140,10 +140,12 @@ export function PublicLandingPage() {
       {/* Hero */}
       <header className="bg-sidebar text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-2.5 px-6 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <Sun className="h-5 w-5" />
+          <div className="rounded-lg bg-white p-1">
+            <img src="/logo.svg" alt="Kratos Sustainability" className="h-9 w-auto" />
           </div>
-          <span className="font-semibold">Kratos Energy</span>
+          <span className="font-bold uppercase tracking-wide">
+            <span className="text-[#6abf2e]">Kratos</span> <span className="text-white">Sustainability</span>
+          </span>
         </div>
         <div className="mx-auto max-w-5xl px-6 pb-14 pt-8">
           <h1 className="max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">{p.title}</h1>
