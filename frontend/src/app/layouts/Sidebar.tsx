@@ -11,6 +11,7 @@ import {
   Share2,
   PackageOpen,
   Boxes,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,6 +33,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: 'CRM',
     items: [
       { to: '/leads', label: 'Leads', icon: Target, perm: 'leads.read' },
+      { to: '/chat', label: 'Chat Inbox', icon: MessageSquare, perm: 'leads.read' },
       { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
       { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },

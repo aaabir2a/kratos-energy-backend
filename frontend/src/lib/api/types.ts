@@ -334,6 +334,33 @@ export interface CatalogPackage {
   displayPrice: number;
 }
 
+// ── Chatbot integration ───────────────────────────────
+export interface ChatMessage {
+  id: string;
+  externalId: number | null;
+  sender: 'visitor' | 'ai' | 'agent' | 'system';
+  content: string;
+  agentName: string | null;
+  sentAt: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  externalId: string;
+  chatbotName: string | null;
+  sessionId: string | null;
+  mode: 'ai' | 'human';
+  waitingForHuman: boolean;
+  assignedAgentName: string | null;
+  leadCaptured: boolean;
+  messageCount: number;
+  lastSender: string | null;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  lead: { id: string; firstName: string; lastName: string; status: string; email?: string | null; phone?: string | null; chatbotLeadId?: string | null } | null;
+  messages?: ChatMessage[];
+}
+
 export interface CampaignRow {
   id: string;
   name: string;

@@ -308,6 +308,7 @@ model Lead {
 
   consentMarketing    Boolean @default(false) @map("consent_marketing")
   customFormResponses Json    @default("{}") @map("custom_form_responses")
+  chatbotLeadId       String? @unique @map("chatbot_lead_id") // platform lead id (write-back key)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -336,6 +337,9 @@ model Lead {
 
   // Phase 5
   landingPage LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
+
+  // Chatbot integration
+  chatConversations ChatConversation[]
 
   @@index([campaignId])
   @@index([officeId])
@@ -760,4 +764,55 @@ model PackageProduct {
   @@id([packageId, productId])
   @@index([productId])
   @@map("package_products")
+}
+
+// ═════════════════════════════════════════════════════════════
+// CHATBOT PLATFORM INTEGRATION — local mirror of the chatbot
+// platform's conversations/messages (see CRM_DEVELOPER_GUIDE.md).
+// Populated by webhooks (lead.created / message.created /
+// conversation.human_requested) + on-demand sync pulls.
+// ═════════════════════════════════════════════════════════════
+
+model ChatConversation {
+  id                String    @id @default(uuid()) @db.Uuid
+  externalId        String    @unique @map("external_id") // platform conversation id
+  chatbotId         String?   @map("chatbot_id")
+  chatbotName       String?   @map("chatbot_name")
+  sessionId         String?   @map("session_id")
+  mode              String    @default("ai") // ai | human
+  waitingForHuman   Boolean   @default(false) @map("waiting_for_human")
+  assignedAgentName String?   @map("assigned_agent_name")
+  leadCaptured      Boolean   @default(false) @map("lead_captured")
+  leadId            String?   @map("lead_id") @db.Uuid
+  messageCount      Int       @default(0) @map("message_count")
+  lastSender        String?   @map("last_sender")
+  lastMessage       String?   @map("last_message")
+  lastMessageAt     DateTime? @map("last_message_at") @db.Timestamptz(6)
+  startedAt         DateTime? @map("started_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lead     Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  messages ChatMessage[]
+
+  @@index([waitingForHuman])
+  @@index([lastMessageAt])
+  @@index([leadId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  externalId     Int?     @map("external_id") // platform message id (dedupe key)
+  sender         String // visitor | ai | agent | system
+  content        String
+  agentName      String?  @map("agent_name")
+  sentAt         DateTime @default(now()) @map("sent_at") @db.Timestamptz(6)
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, externalId])
+  @@index([conversationId, sentAt])
+  @@map("chat_messages")
 }

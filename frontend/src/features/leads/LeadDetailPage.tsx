@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { leadsApi, pipelineApi, usersApi, dealsApi } from '@/lib/api/endpoints';
+import { leadsApi, pipelineApi, usersApi, dealsApi, chatApi } from '@/lib/api/endpoints';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate } from '@/lib/utils';
@@ -66,6 +66,7 @@ export function LeadDetailPage() {
   const activities = useQuery({ queryKey: ['lead', id, 'activities'], queryFn: () => leadsApi.activities(id) });
   const notes = useQuery({ queryKey: ['lead', id, 'notes'], queryFn: () => leadsApi.notes(id) });
   const attributions = useQuery({ queryKey: ['lead', id, 'attributions'], queryFn: () => leadsApi.attributions(id) });
+  const chatConvs = useQuery({ queryKey: ['chat', 'byLead', id], queryFn: () => chatApi.conversations({ leadId: id }) });
   const stages = useQuery({ queryKey: ['pipeline', 'stages'], queryFn: () => pipelineApi.stages() });
   const reps = useQuery({
     queryKey: ['users', 'sales'],
@@ -114,6 +115,14 @@ export function LeadDetailPage() {
       setConvertOpen(false);
       invalidate();
       navigate(`/deals/${deal.id}`);
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+  const markContacted = useMutation({
+    mutationFn: () => chatApi.markContacted(id),
+    onSuccess: () => {
+      toast.success('Marked as contacted on the chatbot platform');
+      qc.invalidateQueries({ queryKey: ['lead', id, 'activities'] });
     },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -284,6 +293,39 @@ export function LeadDetailPage() {
               <CardContent className="p-4 text-sm">
                 <p className="text-xs text-muted-foreground">Assigned to</p>
                 <p className="font-medium">{fullName(l.assignedTo)}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {chatConvs.data && chatConvs.data.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Chatbot conversation</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {chatConvs.data.map((cv) => (
+                  <Link
+                    key={cv.id}
+                    to={`/chat?c=${cv.id}`}
+                    className="block rounded-lg border bg-muted/30 p-3 transition-colors hover:bg-muted/60"
+                  >
+                    <p className="font-medium">{cv.chatbotName ?? 'Chatbot'} · {cv.messageCount} messages</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{cv.lastMessage ?? '—'}</p>
+                    <p className="mt-1 text-xs font-medium text-primary">Replay conversation →</p>
+                  </Link>
+                ))}
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => markContacted.mutate()}
+                    disabled={markContacted.isPending}
+                  >
+                    {markContacted.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Mark contacted on chatbot platform
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

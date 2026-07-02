@@ -10,6 +10,7 @@ import { intakeRouter } from './modules/intake/intake.routes';
 import { dealsRouter, convertHandler } from './modules/deals/deals.routes';
 import { landingPagesRouter, formsRouter, publicPagesRouter } from './modules/marketing/marketing.routes';
 import { productsRouter, packagesRouter, publicCatalogRouter } from './modules/catalog/catalog.routes';
+import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.routes';
 
 export const apiRouter = Router();
 
@@ -43,3 +44,5 @@ apiRouter.use('/p', publicPagesRouter); // public page delivery, no auth
 apiRouter.use('/products', productsRouter);
 apiRouter.use('/packages', packagesRouter);
 apiRouter.use('/public', publicCatalogRouter); // public catalog for the main website, no auth
+apiRouter.use('/chatbot', chatbotWebhookRouter); // HMAC-verified platform webhook (no session auth)
+apiRouter.use('/chatbot', chatbotRouter); // staff chat-inbox API

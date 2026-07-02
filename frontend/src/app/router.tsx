@@ -17,6 +17,7 @@ import { LandingPageEditorPage } from '@/features/marketing/LandingPageEditorPag
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
+import { ChatInboxPage } from '@/features/chat/ChatInboxPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
@@ -66,6 +67,10 @@ export const router = createBrowserRouter([
               { path: '/website/products', element: <ProductsPage /> },
               { path: '/website/packages', element: <PackagesPage /> },
             ],
+          },
+          {
+            element: <RequirePermission perm="leads.read" />,
+            children: [{ path: '/chat', element: <ChatInboxPage /> }],
           },
           {
             element: <RequirePermission perm="users.read" />,

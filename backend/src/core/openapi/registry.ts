@@ -226,6 +226,18 @@ path({ method: 'get', path: '/public/products', tag: 'Public Website', summary: 
 path({ method: 'get', path: '/public/packages', tag: 'Public Website', summary: 'PUBLIC: published packages with components + pricing', auth: false });
 path({ method: 'get', path: '/public/packages/{slug}', tag: 'Public Website', summary: 'PUBLIC: one published package by slug', auth: false, params: z.object({ slug: z.string() }) });
 
+// ═══════════════ Chatbot integration ═══════════════
+path({ method: 'post', path: '/chatbot/webhook', tag: 'Chatbot', summary: 'Platform webhook receiver (X-Webhook-Signature HMAC; events: lead.created, message.created, conversation.human_requested, ping)', auth: false, body: z.object({ event: z.string(), created_at: z.string(), data: z.record(z.unknown()) }) });
+path({ method: 'get', path: '/chatbot/status', tag: 'Chatbot', summary: 'Integration status (configured?)' });
+path({ method: 'get', path: '/chatbot/conversations', tag: 'Chatbot', summary: 'List mirrored conversations (waiting-for-human first)' });
+path({ method: 'get', path: '/chatbot/conversations/{id}', tag: 'Chatbot', summary: 'Conversation + transcript (replay)', params: idParam });
+path({ method: 'post', path: '/chatbot/conversations/{id}/refresh', tag: 'Chatbot', summary: 'Pull latest transcript from the platform', params: idParam });
+path({ method: 'post', path: '/chatbot/sync', tag: 'Chatbot', summary: 'Pull new conversations + leads (backfill/safety net)' });
+path({ method: 'post', path: '/chatbot/conversations/{id}/takeover', tag: 'Chatbot', summary: 'Live agent takeover (pauses AI)', params: idParam });
+path({ method: 'post', path: '/chatbot/conversations/{id}/reply', tag: 'Chatbot', summary: 'Send agent reply to the visitor', params: idParam, body: z.object({ text: z.string().min(1).max(4000) }) });
+path({ method: 'post', path: '/chatbot/conversations/{id}/release', tag: 'Chatbot', summary: 'Hand chat back to the AI', params: idParam });
+path({ method: 'post', path: '/chatbot/leads/{id}/contacted', tag: 'Chatbot', summary: 'Write-back: mark lead contacted on the platform', params: idParam });
+
 // ═══════════════ Campaigns (Phase 3) ═══════════════
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });
 path({ method: 'post', path: '/campaigns', tag: 'Campaigns', summary: 'Create campaign', body: createCampaignSchema, created: true });

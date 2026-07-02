@@ -5,6 +5,7 @@ import type {
   AuthUser,
   CampaignRow,
   CatalogPackage,
+  ChatConversation,
   Deal,
   DealItem,
   DealStats,
@@ -166,6 +167,26 @@ export const catalogApi = {
   removePackage: (id: string) => api.delete(`/packages/${id}`),
   setPackageProducts: (id: string, products: { productId: string; quantity: number }[]) =>
     api.put<ApiSuccess<CatalogPackage>>(`/packages/${id}/products`, { products }).then((r) => r.data.data),
+};
+
+// ── Chatbot integration ───────────────────────────────
+export const chatApi = {
+  status: () => api.get<ApiSuccess<{ configured: boolean; apiBase: string }>>('/chatbot/status').then((r) => r.data.data),
+  conversations: (params?: { waiting?: boolean; leadId?: string; search?: string }) =>
+    api.get<ApiSuccess<ChatConversation[]>>('/chatbot/conversations', { params }).then((r) => r.data.data),
+  conversation: (id: string) =>
+    api.get<ApiSuccess<ChatConversation>>(`/chatbot/conversations/${id}`).then((r) => r.data.data),
+  refresh: (id: string) =>
+    api.post<ApiSuccess<ChatConversation>>(`/chatbot/conversations/${id}/refresh`).then((r) => r.data.data),
+  sync: () =>
+    api.post<ApiSuccess<{ conversations: number; leads: number; newLeads: number }>>('/chatbot/sync').then((r) => r.data.data),
+  takeover: (id: string) =>
+    api.post<ApiSuccess<ChatConversation>>(`/chatbot/conversations/${id}/takeover`).then((r) => r.data.data),
+  reply: (id: string, text: string) =>
+    api.post<ApiSuccess<ChatConversation>>(`/chatbot/conversations/${id}/reply`, { text }).then((r) => r.data.data),
+  release: (id: string) =>
+    api.post<ApiSuccess<ChatConversation>>(`/chatbot/conversations/${id}/release`).then((r) => r.data.data),
+  markContacted: (leadId: string) => api.post(`/chatbot/leads/${leadId}/contacted`),
 };
 
 // ── Deals (Phase 4) ───────────────────────────────────

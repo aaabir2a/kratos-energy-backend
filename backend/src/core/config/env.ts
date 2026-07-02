@@ -18,6 +18,11 @@ const envSchema = z.object({
 
   INTAKE_WEBHOOK_SECRET: z.string().min(16).default('dev_webhook_secret_change_me'),
 
+  // Chatbot platform (CRM_DEVELOPER_GUIDE.md). Key empty => integration disabled.
+  CHATBOT_API_BASE: z.string().url().default('https://api.ambrosianuk.com'),
+  CHATBOT_CRM_KEY: z.string().default(''),
+  CHATBOT_WEBHOOK_SECRET: z.string().default(''),
+
   BCRYPT_ROUNDS: z.coerce.number().min(8).max(15).default(12),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(120),
