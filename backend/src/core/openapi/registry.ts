@@ -32,6 +32,14 @@ import {
   socialPlatformParamSchema,
 } from '../../modules/intake/intake.schema';
 import { createCampaignSchema, updateCampaignSchema } from '../../modules/sources/sources.routes';
+// Deals (Phase 4)
+import {
+  convertLeadSchema,
+  updateDealSchema,
+  dealItemInput,
+  moveDealStageSchema,
+  loseDealSchema,
+} from '../../modules/deals/deals.schema';
 
 extendZodWithOpenApi(z);
 
@@ -154,6 +162,17 @@ path({ method: 'get', path: '/leads/{id}/attributions', tag: 'Leads', summary: '
 path({ method: 'post', path: '/leads/submit', tag: 'Intake', summary: 'Public website/landing-page submission (no auth, rate-limited, honeypot)', auth: false, body: publicSubmitSchema, created: true });
 path({ method: 'post', path: '/intake/chatbot', tag: 'Intake', summary: 'Chatbot webhook (x-webhook-secret header)', auth: false, body: chatbotIntakeSchema, created: true });
 path({ method: 'post', path: '/intake/social/{platform}', tag: 'Intake', summary: 'Social lead-ads webhook (x-webhook-secret header)', auth: false, params: socialPlatformParamSchema, body: socialIntakeSchema, created: true });
+
+// ═══════════════ Deals (Phase 4) ═══════════════
+path({ method: 'post', path: '/leads/{id}/convert', tag: 'Deals', summary: 'Convert lead → deal (marks lead CONVERTED)', params: idParam, body: convertLeadSchema, created: true });
+path({ method: 'get', path: '/deals', tag: 'Deals', summary: 'List deals (scoped by role)' });
+path({ method: 'get', path: '/deals/stats', tag: 'Deals', summary: 'Open pipeline value, won MTD, win rate' });
+path({ method: 'get', path: '/deals/{id}', tag: 'Deals', summary: 'Get deal (items + stage history)', params: idParam });
+path({ method: 'patch', path: '/deals/{id}', tag: 'Deals', summary: 'Update deal', params: idParam, body: updateDealSchema });
+path({ method: 'post', path: '/deals/{id}/items', tag: 'Deals', summary: 'Add line item (snapshot price)', params: idParam, body: dealItemInput, created: true });
+path({ method: 'patch', path: '/deals/{id}/stage', tag: 'Deals', summary: 'Move deal stage', params: idParam, body: moveDealStageSchema });
+path({ method: 'post', path: '/deals/{id}/win', tag: 'Deals', summary: 'Close won', params: idParam });
+path({ method: 'post', path: '/deals/{id}/lose', tag: 'Deals', summary: 'Close lost (+reason)', params: idParam, body: loseDealSchema });
 
 // ═══════════════ Campaigns (Phase 3) ═══════════════
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });

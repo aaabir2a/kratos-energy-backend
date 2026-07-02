@@ -7,6 +7,7 @@ import { leadsRouter } from './modules/leads/leads.routes';
 import { pipelineRouter } from './modules/pipeline/pipeline.routes';
 import { sourcesRouter, campaignsRouter } from './modules/sources/sources.routes';
 import { intakeRouter } from './modules/intake/intake.routes';
+import { dealsRouter, convertHandler } from './modules/deals/deals.routes';
 
 export const apiRouter = Router();
 
@@ -26,7 +27,11 @@ apiRouter.post('/leads/submit', (req, res, next) => {
   intakeRouter(req, res, next);
 });
 
+// Lead → Deal conversion (must precede the generic /leads router mount).
+apiRouter.post('/leads/:id/convert', ...convertHandler);
+
 apiRouter.use('/leads', leadsRouter);
 apiRouter.use('/pipeline', pipelineRouter);
 apiRouter.use('/sources', sourcesRouter);
 apiRouter.use('/campaigns', campaignsRouter);
+apiRouter.use('/deals', dealsRouter);

@@ -4,6 +4,9 @@ import type {
   AuthResult,
   AuthUser,
   CampaignRow,
+  Deal,
+  DealItem,
+  DealStats,
   Lead,
   LeadActivity,
   LeadAttributionRow,
@@ -117,6 +120,26 @@ export const sourcesApi = {
 
 export const campaignsApi = {
   list: () => api.get<ApiSuccess<CampaignRow[]>>('/campaigns').then((r) => r.data.data),
+};
+
+// ── Deals (Phase 4) ───────────────────────────────────
+export const dealsApi = {
+  list: (params: { page?: number; limit?: number; search?: string; stageId?: string; status?: string }) =>
+    api.get<ApiSuccess<Deal[]>>('/deals', { params }).then((r) => r.data),
+  stats: () => api.get<ApiSuccess<DealStats>>('/deals/stats').then((r) => r.data.data),
+  get: (id: string) => api.get<ApiSuccess<Deal>>(`/deals/${id}`).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<Deal>>(`/deals/${id}`, body).then((r) => r.data.data),
+  convert: (leadId: string, body: Record<string, unknown>) =>
+    api.post<ApiSuccess<Deal>>(`/leads/${leadId}/convert`, body).then((r) => r.data.data),
+  addItem: (id: string, body: { description: string; quantity: number; unitPrice: number }) =>
+    api.post<ApiSuccess<DealItem>>(`/deals/${id}/items`, body).then((r) => r.data.data),
+  removeItem: (id: string, itemId: string) => api.delete(`/deals/${id}/items/${itemId}`),
+  moveStage: (id: string, stageId: string, reason?: string) =>
+    api.patch<ApiSuccess<Deal>>(`/deals/${id}/stage`, { stageId, reason }).then((r) => r.data.data),
+  win: (id: string) => api.post<ApiSuccess<Deal>>(`/deals/${id}/win`).then((r) => r.data.data),
+  lose: (id: string, lostReason: string) =>
+    api.post<ApiSuccess<Deal>>(`/deals/${id}/lose`, { lostReason }).then((r) => r.data.data),
 };
 
 // ── Offices ───────────────────────────────────────────

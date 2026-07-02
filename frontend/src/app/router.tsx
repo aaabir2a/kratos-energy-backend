@@ -10,6 +10,8 @@ import { LeadsPage } from '@/features/leads/LeadsPage';
 import { LeadDetailPage } from '@/features/leads/LeadDetailPage';
 import { PipelinePage } from '@/features/pipeline/PipelinePage';
 import { SourcesPage } from '@/features/sources/SourcesPage';
+import { DealsPage } from '@/features/deals/DealsPage';
+import { DealDetailPage } from '@/features/deals/DealDetailPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
@@ -38,6 +40,13 @@ export const router = createBrowserRouter([
             children: [{ path: '/sources', element: <SourcesPage /> }],
           },
           {
+            element: <RequirePermission perm="deals.read" />,
+            children: [
+              { path: '/deals', element: <DealsPage /> },
+              { path: '/deals/:id', element: <DealDetailPage /> },
+            ],
+          },
+          {
             element: <RequirePermission perm="users.read" />,
             children: [{ path: '/users', element: <UsersPage /> }],
           },
@@ -50,7 +59,6 @@ export const router = createBrowserRouter([
             children: [{ path: '/offices', element: <OfficesPage /> }],
           },
           // Placeholders for upcoming phases — redirect to dashboard for now.
-          { path: '/deals', element: <Navigate to="/" replace /> },
           { path: '/marketing', element: <Navigate to="/" replace /> },
         ],
       },

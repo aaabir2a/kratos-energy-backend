@@ -120,6 +120,30 @@ async function main() {
   }
   console.log(`  ✔ ${stages.length} pipeline stages`);
 
+  // 7. Pipeline stages — DEAL track (Phase 4).
+  const dealStages: {
+    name: string;
+    slug: string;
+    order: number;
+    color: string;
+    isDefault?: boolean;
+    isWon?: boolean;
+    isLost?: boolean;
+  }[] = [
+    { name: 'Quoted', slug: 'quoted', order: 1, color: '#f59e0b', isDefault: true },
+    { name: 'Negotiation', slug: 'negotiation', order: 2, color: '#8b5cf6' },
+    { name: 'Closed Won', slug: 'closed-won', order: 3, color: '#10b981', isWon: true },
+    { name: 'Closed Lost', slug: 'closed-lost', order: 4, color: '#ef4444', isLost: true },
+  ];
+  for (const st of dealStages) {
+    await prisma.pipelineStage.upsert({
+      where: { slug: st.slug },
+      update: { name: st.name, order: st.order, color: st.color, isDefault: st.isDefault ?? false, isWon: st.isWon ?? false, isLost: st.isLost ?? false },
+      create: { name: st.name, slug: st.slug, order: st.order, color: st.color, track: 'DEAL', isDefault: st.isDefault ?? false, isWon: st.isWon ?? false, isLost: st.isLost ?? false },
+    });
+  }
+  console.log(`  ✔ ${dealStages.length} deal stages`);
+
   console.log('✅ Seed complete');
 }
 

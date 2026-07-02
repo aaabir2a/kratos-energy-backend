@@ -27,6 +27,7 @@ model Office {
 
   users User[]
   leads Lead[]
+  deals Deal[]
 
   @@index([isActive])
   @@map("offices")
@@ -113,6 +114,11 @@ model User {
   assignmentsMade     LeadAssignment[]    @relation("AssignmentBy")
   tasks               Task[]              @relation("TaskAssignee")
   createdTasks        Task[]              @relation("TaskCreatedBy")
+
+  // Phase 4 — deals
+  ownedDeals       Deal[]             @relation("DealOwner")
+  createdDeals     Deal[]             @relation("DealCreatedBy")
+  dealStageChanges DealStageHistory[]
 
   @@index([officeId])
   @@index([roleId])
@@ -249,6 +255,7 @@ model PipelineStage {
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   leads Lead[]
+  deals Deal[]
 
   @@index([track, order])
   @@map("pipeline_stages")
@@ -320,6 +327,9 @@ model Lead {
   attributions    LeadAttribution[]
   chatbotSession  ChatbotSession?
   formSubmissions FormSubmission[]
+
+  // Phase 4
+  deals Deal[]
 
   @@index([campaignId])
   @@index([officeId])
@@ -521,4 +531,92 @@ model FormSubmission {
   @@index([channel, createdAt])
   @@index([leadId])
   @@map("form_submissions")
+}
+
+// ═════════════════════════════════════════════════════════════
+// PHASE 4 — Deals & Close
+// ═════════════════════════════════════════════════════════════
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+}
+
+enum DealItemType {
+  PACKAGE
+  PRODUCT
+  CUSTOM
+}
+
+model Deal {
+  id                String     @id @default(uuid()) @db.Uuid
+  dealNumber        Int        @unique @default(autoincrement()) @map("deal_number")
+  leadId            String     @map("lead_id") @db.Uuid
+  ownerId           String?    @map("owner_id") @db.Uuid
+  officeId          String?    @map("office_id") @db.Uuid
+  stageId           String?    @map("stage_id") @db.Uuid
+  status            DealStatus @default(OPEN)
+  title             String
+  value             Decimal    @default(0) @db.Decimal(12, 2)
+  expectedCloseDate DateTime?  @map("expected_close_date") @db.Date
+  closedAt          DateTime?  @map("closed_at") @db.Timestamptz(6)
+  lostReason        String?    @map("lost_reason")
+  createdById       String?    @map("created_by") @db.Uuid
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  lead      Lead           @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  owner     User?          @relation("DealOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  office    Office?        @relation(fields: [officeId], references: [id], onDelete: SetNull)
+  stage     PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("DealCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  items        DealItem[]
+  stageHistory DealStageHistory[]
+
+  @@index([leadId])
+  @@index([ownerId, stageId])
+  @@index([officeId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("deals")
+}
+
+// What the deal sells. Prices are SNAPSHOTS — never recomputed from live
+// catalog rows (rebates change). productId/packageId gain FKs in Phase 6.
+model DealItem {
+  id          String       @id @default(uuid()) @db.Uuid
+  dealId      String       @map("deal_id") @db.Uuid
+  itemType    DealItemType @default(CUSTOM) @map("item_type")
+  productId   String?      @map("product_id") @db.Uuid
+  packageId   String?      @map("package_id") @db.Uuid
+  description String
+  quantity    Int          @default(1)
+  unitPrice   Decimal      @default(0) @map("unit_price") @db.Decimal(12, 2)
+  lineTotal   Decimal      @default(0) @map("line_total") @db.Decimal(12, 2)
+  sortOrder   Int          @default(0) @map("sort_order")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+  @@map("deal_items")
+}
+
+model DealStageHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  dealId      String   @map("deal_id") @db.Uuid
+  fromStageId String?  @map("from_stage_id") @db.Uuid
+  toStageId   String?  @map("to_stage_id") @db.Uuid
+  changedById String?  @map("changed_by") @db.Uuid
+  reason      String?
+  changedAt   DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+
+  deal      Deal  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([dealId, changedAt])
+  @@map("deal_stage_history")
 }

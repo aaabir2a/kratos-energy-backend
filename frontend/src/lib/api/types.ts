@@ -188,6 +188,57 @@ export interface LeadAttributionRow {
   campaign: { name: string } | null;
 }
 
+// ── Phase 4: Deals ────────────────────────────────────
+export type DealStatus = 'OPEN' | 'WON' | 'LOST';
+
+export interface DealItem {
+  id: string;
+  itemType: 'PACKAGE' | 'PRODUCT' | 'CUSTOM';
+  description: string;
+  quantity: number;
+  unitPrice: string;
+  lineTotal: string;
+}
+
+export interface Deal {
+  id: string;
+  dealNumber: number;
+  title: string;
+  status: DealStatus;
+  value: string;
+  expectedCloseDate: string | null;
+  closedAt: string | null;
+  lostReason: string | null;
+  createdAt: string;
+  stage: PipelineStage | null;
+  owner: { id: string; firstName: string; lastName: string } | null;
+  lead: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+    suburb: string | null;
+    state: string | null;
+    source: { name: string; type: string } | null;
+  };
+  items: DealItem[];
+  stageHistory?: {
+    id: string;
+    reason: string | null;
+    changedAt: string;
+    changedBy: { firstName: string; lastName: string } | null;
+  }[];
+}
+
+export interface DealStats {
+  open: number;
+  openValue: number;
+  wonMtd: number;
+  wonValueMtd: number;
+  winRateMtd: number;
+}
+
 export interface CampaignRow {
   id: string;
   name: string;

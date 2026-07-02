@@ -22,9 +22,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { leadsApi, pipelineApi, usersApi } from '@/lib/api/endpoints';
+import { leadsApi, pipelineApi, usersApi, dealsApi } from '@/lib/api/endpoints';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate } from '@/lib/utils';
@@ -50,6 +58,9 @@ export function LeadDetailPage() {
   const [note, setNote] = useState('');
   const [actType, setActType] = useState<'CALL' | 'EMAIL' | 'SMS' | 'MEETING'>('CALL');
   const [actBody, setActBody] = useState('');
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [dealValue, setDealValue] = useState('');
+  const [dealClose, setDealClose] = useState('');
 
   const lead = useQuery({ queryKey: ['lead', id], queryFn: () => leadsApi.get(id) });
   const activities = useQuery({ queryKey: ['lead', id, 'activities'], queryFn: () => leadsApi.activities(id) });
@@ -89,6 +100,20 @@ export function LeadDetailPage() {
       setNote('');
       qc.invalidateQueries({ queryKey: ['lead', id, 'notes'] });
       toast.success('Note added');
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+  const convert = useMutation({
+    mutationFn: () =>
+      dealsApi.convert(id, {
+        ...(dealValue ? { value: Number(dealValue) } : {}),
+        ...(dealClose ? { expectedCloseDate: dealClose } : {}),
+      }),
+    onSuccess: (deal) => {
+      toast.success(`Deal D-${deal.dealNumber} created`);
+      setConvertOpen(false);
+      invalidate();
+      navigate(`/deals/${deal.id}`);
     },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
@@ -145,7 +170,38 @@ export function LeadDetailPage() {
             </div>
           </div>
         </div>
+        {l.status === 'OPEN' && can('leads.convert') && (
+          <Button onClick={() => setConvertOpen(true)}>
+            <Zap className="h-4 w-4" /> Convert to deal
+          </Button>
+        )}
       </div>
+
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert to deal</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Estimated value ($, optional)</Label>
+              <Input type="number" min={0} placeholder="e.g. 8990" value={dealValue} onChange={(e) => setDealValue(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Expected close date (optional)</Label>
+              <Input type="date" value={dealClose} onChange={(e) => setDealClose(e.target.value)} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The lead is marked converted; the deal starts at the Quoted stage owned by the lead's assignee.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => convert.mutate()} disabled={convert.isPending}>
+              {convert.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Create deal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: details + workflow */}
