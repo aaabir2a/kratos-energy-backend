@@ -21,7 +21,19 @@ Lead-management CRM for an Australian solar company. Capture leads (website / so
 - PostgreSQL 16/17 running locally (role `kratos` / db `kratos_crm`, or edit `backend/.env`)
 - Redis optional (backend degrades gracefully without it)
 
-## Run
+## Run (one command)
+
+```powershell
+.\dev.ps1        # PowerShell — opens backend + frontend in two windows
+.\dev.ps1 -Stop  # stop both
+```
+```bash
+./dev.sh         # Git Bash / Linux / macOS — one terminal, Ctrl+C stops both
+./dev.sh stop
+```
+`dev.bat` does the same from cmd / double-click. Scripts free stale ports and run `npm install` on first use.
+
+## Run (manual)
 
 ```bash
 # 1. Backend
