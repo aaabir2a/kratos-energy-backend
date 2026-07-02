@@ -93,7 +93,7 @@ chatbotRouter.post(
 chatbotRouter.post(
   '/sync',
   requirePermission('leads.read'),
-  asyncHandler(async (_req, res) => ok(res, await chatbotService.sync())),
+  asyncHandler(async (req, res) => ok(res, await chatbotService.sync(req.query.full === 'true'))),
 );
 
 chatbotRouter.post(

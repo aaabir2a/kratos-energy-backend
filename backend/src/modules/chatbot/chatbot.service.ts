@@ -162,19 +162,20 @@ export const chatbotService = {
   },
 
   // ── Pull sync (backfill / safety net alongside webhooks) ──
-  async sync(): Promise<{ conversations: number; leads: number; newLeads: number }> {
+  // full=true ignores the incremental watermark and pulls all history.
+  async sync(full = false): Promise<{ conversations: number; leads: number; newLeads: number }> {
     const [lastConv, lastLead] = await Promise.all([
       prisma.chatConversation.aggregate({ _max: { lastMessageAt: true } }),
       prisma.lead.aggregate({ where: { chatbotLeadId: { not: null } }, _max: { createdAt: true } }),
     ]);
 
     const convs = await chatbotClient.conversations({
-      since: lastConv._max.lastMessageAt?.toISOString(),
+      since: full ? undefined : lastConv._max.lastMessageAt?.toISOString(),
     });
     for (const c of convs.conversations) await upsertConversation(c);
 
     const leads = await chatbotClient.leads({
-      since: lastLead._max.createdAt?.toISOString(),
+      since: full ? undefined : lastLead._max.createdAt?.toISOString(),
     });
     let newLeads = 0;
     for (const l of leads.leads) {
