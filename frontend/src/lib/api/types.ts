@@ -295,6 +295,45 @@ export interface PublicPage {
   forms: LeadForm[];
 }
 
+// ── Phase 6: Catalog ──────────────────────────────────
+export interface Product {
+  id: string;
+  category: string;
+  brandName: string;
+  capacity: string;
+  stock: number;
+  basePrice: string;
+  stateRebate: string;
+  federalRebate: string;
+  finalPrice: number;
+  imageUrl: string | null;
+  officialUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PackageComponent {
+  productId: string;
+  quantity: number;
+  sortOrder: number;
+  product: Product;
+}
+
+export interface CatalogPackage {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  power: string;
+  estimatedPrice: string;
+  imageUrl: string | null;
+  isPublished: boolean;
+  createdAt: string;
+  products: PackageComponent[];
+  componentsTotal: number;
+  displayPrice: number;
+}
+
 export interface CampaignRow {
   id: string;
   name: string;

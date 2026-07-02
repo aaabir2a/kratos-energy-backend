@@ -15,6 +15,8 @@ import { DealDetailPage } from '@/features/deals/DealDetailPage';
 import { LandingPagesPage } from '@/features/marketing/LandingPagesPage';
 import { LandingPageEditorPage } from '@/features/marketing/LandingPageEditorPage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
+import { ProductsPage } from '@/features/catalog/ProductsPage';
+import { PackagesPage } from '@/features/catalog/PackagesPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
@@ -56,6 +58,13 @@ export const router = createBrowserRouter([
             children: [
               { path: '/marketing', element: <LandingPagesPage /> },
               { path: '/marketing/pages/:id', element: <LandingPageEditorPage /> },
+            ],
+          },
+          {
+            element: <RequirePermission perm="catalog.read" />,
+            children: [
+              { path: '/website/products', element: <ProductsPage /> },
+              { path: '/website/packages', element: <PackagesPage /> },
             ],
           },
           {

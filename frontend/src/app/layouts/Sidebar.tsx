@@ -10,6 +10,8 @@ import {
   Handshake,
   KanbanSquare,
   Share2,
+  PackageOpen,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -35,6 +37,13 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },
       { to: '/marketing', label: 'Marketing', icon: Megaphone, perm: 'landing_pages.read' },
+    ],
+  },
+  {
+    section: 'Website Settings',
+    items: [
+      { to: '/website/products', label: 'Products', icon: PackageOpen, perm: 'catalog.read' },
+      { to: '/website/packages', label: 'Packages', icon: Boxes, perm: 'catalog.read' },
     ],
   },
   {

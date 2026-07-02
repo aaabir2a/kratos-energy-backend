@@ -47,6 +47,14 @@ import {
   createFormSchema,
   updateFormSchema,
 } from '../../modules/marketing/marketing.schema';
+// Catalog (Phase 6)
+import {
+  createProductSchema,
+  updateProductSchema,
+  createPackageSchema,
+  updatePackageSchema,
+  setPackageProductsSchema,
+} from '../../modules/catalog/catalog.schema';
 
 extendZodWithOpenApi(z);
 
@@ -190,6 +198,33 @@ path({ method: 'delete', path: '/landing-pages/{id}', tag: 'Marketing', summary:
 path({ method: 'post', path: '/landing-pages/{id}/forms', tag: 'Marketing', summary: 'Create dynamic form (fields_schema)', params: idParam, body: createFormSchema, created: true });
 path({ method: 'patch', path: '/forms/{id}', tag: 'Marketing', summary: 'Update form (schema change bumps version)', params: idParam, body: updateFormSchema });
 path({ method: 'get', path: '/p/{slug}', tag: 'Marketing', summary: 'PUBLIC: fetch published page + active form (increments views)', auth: false, params: z.object({ slug: z.string() }) });
+
+// ═══════════════ Catalog (Phase 6) ═══════════════
+path({ method: 'get', path: '/products', tag: 'Catalog', summary: 'List products (staff, incl. inactive)' });
+path({ method: 'get', path: '/products/categories', tag: 'Catalog', summary: 'Distinct product categories' });
+path({ method: 'get', path: '/products/{id}', tag: 'Catalog', summary: 'Get product (+finalPrice)', params: idParam });
+path({ method: 'post', path: '/products', tag: 'Catalog', summary: 'Create product (admin)', body: createProductSchema, created: true });
+path({ method: 'patch', path: '/products/{id}', tag: 'Catalog', summary: 'Update product (admin)', params: idParam, body: updateProductSchema });
+path({ method: 'delete', path: '/products/{id}', tag: 'Catalog', summary: 'Delete product (blocked while in a package)', params: idParam });
+path({ method: 'get', path: '/packages', tag: 'Catalog', summary: 'List packages (staff, incl. unpublished)' });
+path({ method: 'get', path: '/packages/{id}', tag: 'Catalog', summary: 'Get package (+components, componentsTotal, displayPrice)', params: idParam });
+path({ method: 'post', path: '/packages', tag: 'Catalog', summary: 'Create package (admin)', body: createPackageSchema, created: true });
+path({ method: 'patch', path: '/packages/{id}', tag: 'Catalog', summary: 'Update package / publish toggle (admin)', params: idParam, body: updatePackageSchema });
+path({ method: 'delete', path: '/packages/{id}', tag: 'Catalog', summary: 'Delete package (admin)', params: idParam });
+registry.registerPath({
+  method: 'put',
+  path: '/packages/{id}/products',
+  tags: ['Catalog'],
+  summary: 'Compose package from products (replaces component list)',
+  security: secured,
+  request: { params: idParam, body: json(setPackageProductsSchema) },
+  responses: { 200: okResponse(), ...commonErrors },
+});
+
+// ═══════════════ Public Website API (Phase 6) ═══════════════
+path({ method: 'get', path: '/public/products', tag: 'Public Website', summary: 'PUBLIC: active products for the main website', auth: false });
+path({ method: 'get', path: '/public/packages', tag: 'Public Website', summary: 'PUBLIC: published packages with components + pricing', auth: false });
+path({ method: 'get', path: '/public/packages/{slug}', tag: 'Public Website', summary: 'PUBLIC: one published package by slug', auth: false, params: z.object({ slug: z.string() }) });
 
 // ═══════════════ Campaigns (Phase 3) ═══════════════
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });

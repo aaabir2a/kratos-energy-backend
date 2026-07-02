@@ -606,7 +606,9 @@ model DealItem {
   sortOrder   Int          @default(0) @map("sort_order")
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal    Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  package Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
   @@index([dealId])
   @@map("deal_items")
@@ -663,6 +665,7 @@ model LandingPage {
 
   campaign  MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   createdBy User?              @relation("PageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  package   Package?           @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
   forms CustomLeadForm[]
   leads Lead[]
@@ -689,4 +692,72 @@ model CustomLeadForm {
 
   @@index([landingPageId])
   @@map("custom_lead_forms")
+}
+
+// ═════════════════════════════════════════════════════════════
+// PHASE 6 — Catalog (PDF schema: products, packages, package_products)
+// Consumed by the main website via the public API (/public/*).
+// Note: PDF's final_price GENERATED column is computed in the service
+// layer (base - state_rebate - federal_rebate) — identical API behavior,
+// avoids Prisma migration drift on generated columns.
+// ═════════════════════════════════════════════════════════════
+
+model Product {
+  id            String    @id @default(uuid()) @db.Uuid
+  category      String // e.g. Inverter, Battery, Solar Panel (PDF free-text)
+  brandName     String    @map("brand_name")
+  capacity      String // e.g. "440W", "5kW" (PDF free-text)
+  stock         Int       @default(0) // display attribute per scope decision, NOT inventory
+  basePrice     Decimal   @map("base_price") @db.Decimal(10, 2)
+  stateRebate   Decimal   @default(0) @map("state_rebate") @db.Decimal(10, 2)
+  federalRebate Decimal   @default(0) @map("federal_rebate") @db.Decimal(10, 2)
+  imageUrl      String?   @map("image_url")
+  officialUrl   String?   @map("official_url")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  packages  PackageProduct[]
+  dealItems DealItem[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("products")
+}
+
+model Package {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String    @unique
+  description    String?
+  power          String // e.g. "6.6kW System" (PDF)
+  estimatedPrice Decimal   @map("estimated_price") @db.Decimal(10, 2)
+  imageUrl       String?   @map("image_url")
+  isPublished    Boolean   @default(false) @map("is_published")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  products     PackageProduct[]
+  dealItems    DealItem[]
+  landingPages LandingPage[]
+
+  @@index([isPublished])
+  @@map("packages")
+}
+
+// PDF junction: compose a package from products.
+model PackageProduct {
+  packageId String @map("package_id") @db.Uuid
+  productId String @map("product_id") @db.Uuid
+  quantity  Int    @default(1)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@id([packageId, productId])
+  @@index([productId])
+  @@map("package_products")
 }

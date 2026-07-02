@@ -4,6 +4,7 @@ import type {
   AuthResult,
   AuthUser,
   CampaignRow,
+  CatalogPackage,
   Deal,
   DealItem,
   DealStats,
@@ -21,6 +22,7 @@ import type {
   Permission,
   PipelineColumn,
   PipelineStage,
+  Product,
   Role,
   SourceReportRow,
   User,
@@ -142,6 +144,28 @@ export const marketingApi = {
   publicPage: (slug: string) => api.get<ApiSuccess<PublicPage>>(`/p/${slug}`).then((r) => r.data.data),
   publicSubmit: (body: Record<string, unknown>) =>
     api.post<ApiSuccess<{ message: string; reference?: string }>>('/leads/submit', body).then((r) => r.data.data),
+};
+
+// ── Catalog (Phase 6) ─────────────────────────────────
+export const catalogApi = {
+  listProducts: (params?: { search?: string; category?: string; limit?: number }) =>
+    api.get<ApiSuccess<Product[]>>('/products', { params }).then((r) => r.data),
+  categories: () => api.get<ApiSuccess<string[]>>('/products/categories').then((r) => r.data.data),
+  createProduct: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<Product>>('/products', body).then((r) => r.data.data),
+  updateProduct: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<Product>>(`/products/${id}`, body).then((r) => r.data.data),
+  removeProduct: (id: string) => api.delete(`/products/${id}`),
+  listPackages: (params?: { search?: string; limit?: number }) =>
+    api.get<ApiSuccess<CatalogPackage[]>>('/packages', { params }).then((r) => r.data),
+  getPackage: (id: string) => api.get<ApiSuccess<CatalogPackage>>(`/packages/${id}`).then((r) => r.data.data),
+  createPackage: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<CatalogPackage>>('/packages', body).then((r) => r.data.data),
+  updatePackage: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<CatalogPackage>>(`/packages/${id}`, body).then((r) => r.data.data),
+  removePackage: (id: string) => api.delete(`/packages/${id}`),
+  setPackageProducts: (id: string, products: { productId: string; quantity: number }[]) =>
+    api.put<ApiSuccess<CatalogPackage>>(`/packages/${id}/products`, { products }).then((r) => r.data.data),
 };
 
 // ── Deals (Phase 4) ───────────────────────────────────
