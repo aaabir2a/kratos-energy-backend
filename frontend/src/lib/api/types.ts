@@ -159,3 +159,43 @@ export interface LeadStats {
 export interface PipelineColumn extends PipelineStage {
   leads: LeadListItem[];
 }
+
+// ── Phase 3: Attribution ──────────────────────────────
+export interface SourceReportRow {
+  sourceId: string | null;
+  sourceName: string;
+  sourceType: string;
+  total: number;
+  open: number;
+  converted: number;
+  lost: number;
+  conversionRate: number;
+}
+
+export interface LeadAttributionRow {
+  id: string;
+  touchType: 'FIRST' | 'LAST';
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmTerm: string | null;
+  utmContent: string | null;
+  gclid: string | null;
+  fbclid: string | null;
+  referrerUrl: string | null;
+  createdAt: string;
+  source: { name: string; type: string } | null;
+  campaign: { name: string } | null;
+}
+
+export interface CampaignRow {
+  id: string;
+  name: string;
+  channel: string | null;
+  utmCampaign: string | null;
+  budget: number | null;
+  spend: number | null;
+  leads: number;
+  costPerLead: number | null;
+  isActive: boolean;
+}

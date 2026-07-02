@@ -3,8 +3,10 @@ import type {
   ApiSuccess,
   AuthResult,
   AuthUser,
+  CampaignRow,
   Lead,
   LeadActivity,
+  LeadAttributionRow,
   LeadListItem,
   LeadNote,
   LeadSource,
@@ -14,6 +16,7 @@ import type {
   PipelineColumn,
   PipelineStage,
   Role,
+  SourceReportRow,
   User,
 } from './types';
 
@@ -94,6 +97,8 @@ export const leadsApi = {
   notes: (id: string) => api.get<ApiSuccess<LeadNote[]>>(`/leads/${id}/notes`).then((r) => r.data.data),
   addNote: (id: string, body: string, isPinned?: boolean) =>
     api.post<ApiSuccess<LeadNote>>(`/leads/${id}/notes`, { body, isPinned }).then((r) => r.data.data),
+  attributions: (id: string) =>
+    api.get<ApiSuccess<LeadAttributionRow[]>>(`/leads/${id}/attributions`).then((r) => r.data.data),
 };
 
 export const pipelineApi = {
@@ -104,6 +109,14 @@ export const pipelineApi = {
 
 export const sourcesApi = {
   list: () => api.get<ApiSuccess<LeadSource[]>>('/sources').then((r) => r.data.data),
+  attribution: (days?: number) =>
+    api
+      .get<ApiSuccess<SourceReportRow[]>>('/sources/attribution', { params: { days } })
+      .then((r) => r.data.data),
+};
+
+export const campaignsApi = {
+  list: () => api.get<ApiSuccess<CampaignRow[]>>('/campaigns').then((r) => r.data.data),
 };
 
 // ── Offices ───────────────────────────────────────────

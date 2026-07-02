@@ -24,6 +24,14 @@ import {
   addNoteSchema,
   addActivitySchema,
 } from '../../modules/leads/leads.schema';
+// Intake + campaigns (Phase 3)
+import {
+  publicSubmitSchema,
+  chatbotIntakeSchema,
+  socialIntakeSchema,
+  socialPlatformParamSchema,
+} from '../../modules/intake/intake.schema';
+import { createCampaignSchema, updateCampaignSchema } from '../../modules/sources/sources.routes';
 
 extendZodWithOpenApi(z);
 
@@ -139,6 +147,18 @@ path({ method: 'post', path: '/leads/{id}/activities', tag: 'Leads', summary: 'L
 path({ method: 'get', path: '/pipeline/stages', tag: 'Pipeline', summary: 'List stages' });
 path({ method: 'get', path: '/pipeline/board', tag: 'Pipeline', summary: 'Kanban board' });
 path({ method: 'get', path: '/sources', tag: 'Sources', summary: 'List lead sources' });
+path({ method: 'get', path: '/sources/attribution', tag: 'Sources', summary: 'Leads by source w/ conversion (?days=30)' });
+path({ method: 'get', path: '/leads/{id}/attributions', tag: 'Leads', summary: 'Attribution touches for a lead', params: idParam });
+
+// ═══════════════ Intake (Phase 3) ═══════════════
+path({ method: 'post', path: '/leads/submit', tag: 'Intake', summary: 'Public website/landing-page submission (no auth, rate-limited, honeypot)', auth: false, body: publicSubmitSchema, created: true });
+path({ method: 'post', path: '/intake/chatbot', tag: 'Intake', summary: 'Chatbot webhook (x-webhook-secret header)', auth: false, body: chatbotIntakeSchema, created: true });
+path({ method: 'post', path: '/intake/social/{platform}', tag: 'Intake', summary: 'Social lead-ads webhook (x-webhook-secret header)', auth: false, params: socialPlatformParamSchema, body: socialIntakeSchema, created: true });
+
+// ═══════════════ Campaigns (Phase 3) ═══════════════
+path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });
+path({ method: 'post', path: '/campaigns', tag: 'Campaigns', summary: 'Create campaign', body: createCampaignSchema, created: true });
+path({ method: 'patch', path: '/campaigns/{id}', tag: 'Campaigns', summary: 'Update campaign', params: idParam, body: updateCampaignSchema });
 
 export function buildOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);

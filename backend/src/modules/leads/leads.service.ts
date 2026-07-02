@@ -295,6 +295,18 @@ export const leadsService = {
     return leadsRepository.listActivities(id);
   },
 
+  async listAttributions(auth: AuthContext, id: string) {
+    await this.getById(auth, id);
+    return prisma.leadAttribution.findMany({
+      where: { leadId: id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        source: { select: { name: true, type: true } },
+        campaign: { select: { name: true } },
+      },
+    });
+  },
+
   stats(auth: AuthContext) {
     return leadsRepository.stats(buildLeadScope(auth));
   },

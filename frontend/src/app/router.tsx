@@ -9,6 +9,7 @@ import { OfficesPage } from '@/features/offices/OfficesPage';
 import { LeadsPage } from '@/features/leads/LeadsPage';
 import { LeadDetailPage } from '@/features/leads/LeadDetailPage';
 import { PipelinePage } from '@/features/pipeline/PipelinePage';
+import { SourcesPage } from '@/features/sources/SourcesPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
@@ -31,6 +32,10 @@ export const router = createBrowserRouter([
           {
             element: <RequirePermission perm="pipeline.read" />,
             children: [{ path: '/pipeline', element: <PipelinePage /> }],
+          },
+          {
+            element: <RequirePermission perm="sources.read" />,
+            children: [{ path: '/sources', element: <SourcesPage /> }],
           },
           {
             element: <RequirePermission perm="users.read" />,

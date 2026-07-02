@@ -54,6 +54,7 @@ export function LeadDetailPage() {
   const lead = useQuery({ queryKey: ['lead', id], queryFn: () => leadsApi.get(id) });
   const activities = useQuery({ queryKey: ['lead', id, 'activities'], queryFn: () => leadsApi.activities(id) });
   const notes = useQuery({ queryKey: ['lead', id, 'notes'], queryFn: () => leadsApi.notes(id) });
+  const attributions = useQuery({ queryKey: ['lead', id, 'attributions'], queryFn: () => leadsApi.attributions(id) });
   const stages = useQuery({ queryKey: ['pipeline', 'stages'], queryFn: () => pipelineApi.stages() });
   const reps = useQuery({
     queryKey: ['users', 'sales'],
@@ -227,6 +228,39 @@ export function LeadDetailPage() {
               <CardContent className="p-4 text-sm">
                 <p className="text-xs text-muted-foreground">Assigned to</p>
                 <p className="font-medium">{fullName(l.assignedTo)}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {attributions.data && attributions.data.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Attribution</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {attributions.data.map((a) => (
+                  <div key={a.id} className="rounded-lg border bg-muted/30 p-3 text-xs">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">
+                        {a.touchType === 'FIRST' ? 'First touch' : 'Last touch'}
+                      </span>
+                      <span className="text-muted-foreground">{formatDate(a.createdAt)}</span>
+                    </div>
+                    <p className="font-medium text-sm">{a.source?.name ?? 'Unknown source'}</p>
+                    {(a.utmSource || a.utmCampaign) && (
+                      <p className="mt-0.5 text-muted-foreground">
+                        {[a.utmSource, a.utmMedium, a.utmCampaign].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    {a.campaign && <p className="mt-0.5 text-muted-foreground">Campaign: {a.campaign.name}</p>}
+                    {(a.gclid || a.fbclid) && (
+                      <p className="mt-0.5 truncate text-muted-foreground">
+                        {a.gclid ? `gclid: ${a.gclid}` : `fbclid: ${a.fbclid}`}
+                      </p>
+                    )}
+                    {a.referrerUrl && <p className="mt-0.5 truncate text-muted-foreground">Ref: {a.referrerUrl}</p>}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}

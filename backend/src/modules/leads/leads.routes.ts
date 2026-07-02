@@ -35,4 +35,5 @@ leadsRouter.get('/:id/notes', requirePermission('leads.read'), validate({ params
 leadsRouter.post('/:id/notes', requirePermission('activities.write'), validate({ params: idParamSchema, body: addNoteSchema }), asyncHandler(leadsController.addNote));
 
 leadsRouter.get('/:id/activities', requirePermission('leads.read'), validate({ params: idParamSchema }), asyncHandler(leadsController.listActivities));
+leadsRouter.get('/:id/attributions', requirePermission('leads.read'), validate({ params: idParamSchema }), asyncHandler(leadsController.listAttributions));
 leadsRouter.post('/:id/activities', requirePermission('activities.write'), validate({ params: idParamSchema, body: addActivitySchema }), asyncHandler(leadsController.addActivity));

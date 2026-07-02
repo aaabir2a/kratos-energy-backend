@@ -11,8 +11,8 @@ Lead-management CRM for an Australian solar company. Capture leads (website / so
 |------|-------|--------|
 | 1 | Authentication, RBAC (4 roles), Offices, Users | ✅ Done |
 | 2 | Leads, pipeline, round-robin assignment, activities | ✅ Done |
-| 3 | Source tracking & intake | ⏳ Next |
-| 4 | Pipeline, deals & close | Planned |
+| 3 | Source tracking & intake (attribution, public submit, social/chatbot webhooks) | ✅ Done |
+| 4 | Pipeline, deals & close | ⏳ Next |
 | 5 | Landing pages & forms | Planned |
 | 6 | Catalog (products + packages) | Planned |
 

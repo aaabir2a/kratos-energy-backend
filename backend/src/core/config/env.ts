@@ -16,6 +16,8 @@ const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('7d'),
 
+  INTAKE_WEBHOOK_SECRET: z.string().min(16).default('dev_webhook_secret_change_me'),
+
   BCRYPT_ROUNDS: z.coerce.number().min(8).max(15).default(12),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(120),

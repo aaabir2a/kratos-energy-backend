@@ -83,4 +83,7 @@ export const leadsController = {
   async listActivities(req: Request, res: Response) {
     ok(res, await leadsService.listActivities(ctx(req), req.params.id));
   },
+  async listAttributions(req: Request, res: Response) {
+    ok(res, await leadsService.listAttributions(ctx(req), req.params.id));
+  },
 };

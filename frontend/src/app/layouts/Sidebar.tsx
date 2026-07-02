@@ -9,6 +9,7 @@ import {
   Target,
   Handshake,
   KanbanSquare,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -31,6 +32,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { to: '/leads', label: 'Leads', icon: Target, perm: 'leads.read' },
       { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
+      { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read', soon: true },
       { to: '/marketing', label: 'Marketing', icon: Megaphone, perm: 'landing_pages.read', soon: true },
     ],
