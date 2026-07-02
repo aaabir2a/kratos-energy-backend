@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { RequireAuth, RequirePermission } from './guards';
 import { AppLayout } from './layouts/AppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -12,11 +12,16 @@ import { PipelinePage } from '@/features/pipeline/PipelinePage';
 import { SourcesPage } from '@/features/sources/SourcesPage';
 import { DealsPage } from '@/features/deals/DealsPage';
 import { DealDetailPage } from '@/features/deals/DealDetailPage';
+import { LandingPagesPage } from '@/features/marketing/LandingPagesPage';
+import { LandingPageEditorPage } from '@/features/marketing/LandingPageEditorPage';
+import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/403', element: <ForbiddenPage /> },
+  // Public landing pages — no auth.
+  { path: '/p/:slug', element: <PublicLandingPage /> },
   {
     element: <RequireAuth />,
     children: [
@@ -47,6 +52,13 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            element: <RequirePermission perm="landing_pages.read" />,
+            children: [
+              { path: '/marketing', element: <LandingPagesPage /> },
+              { path: '/marketing/pages/:id', element: <LandingPageEditorPage /> },
+            ],
+          },
+          {
             element: <RequirePermission perm="users.read" />,
             children: [{ path: '/users', element: <UsersPage /> }],
           },
@@ -58,8 +70,6 @@ export const router = createBrowserRouter([
             element: <RequirePermission perm="offices.read" />,
             children: [{ path: '/offices', element: <OfficesPage /> }],
           },
-          // Placeholders for upcoming phases — redirect to dashboard for now.
-          { path: '/marketing', element: <Navigate to="/" replace /> },
         ],
       },
     ],

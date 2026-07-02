@@ -1,7 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../core/database/prisma';
 import { logger } from '../../core/logger/logger';
+import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
+import { parseFieldsSchema, validateSubmission } from '../marketing/formEngine';
 import type {
   AttributionInput,
   ChatbotIntakeInput,
@@ -52,6 +54,7 @@ function attributionData(attr: AttributionInput, meta: ClientMeta) {
 interface CaptureLeadArgs {
   channel: string; // 'web' | 'social:facebook' | 'chatbot' ...
   sourceSlug: string;
+  landingPageId?: string | null;
   contact: {
     firstName: string;
     lastName: string;
@@ -146,6 +149,7 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
       consentMarketing: args.contact.consentMarketing ?? false,
       leadSourceId: sourceId,
       campaignId,
+      landingPageId: args.landingPageId ?? undefined,
       stageId: defaultStage?.id,
       assignedToId,
       utmSource: args.attribution.utmSource,
@@ -225,16 +229,52 @@ export const intakeService = {
       logger.warn({ ip: meta.ip }, 'Honeypot tripped on public submit');
       return null;
     }
-    return captureLead({
-      channel: 'web',
-      sourceSlug: input.sourceSlug ?? 'website',
+
+    // Landing-page submission: validate dynamic fields against the page's
+    // stored fields_schema (PDF's validation engine). Missing/invalid → 400.
+    let landingPageId: string | null = null;
+    let customFields = input.customFields;
+    let formVersion: number | null = null;
+
+    if (input.landingPageSlug) {
+      const page = await prisma.landingPage.findFirst({
+        where: { urlSlug: input.landingPageSlug, status: 'PUBLISHED', deletedAt: null },
+        include: { forms: { where: { isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 } },
+      });
+      if (!page) throw AppError.badRequest('Unknown or unpublished landing page');
+      landingPageId = page.id;
+
+      const form = page.forms[0];
+      if (form) {
+        const fields = parseFieldsSchema(form.fieldsSchema);
+        const result = validateSubmission(fields, input.customFields ?? {});
+        if (!result.valid) {
+          throw AppError.badRequest('Form validation failed', { fields: result.errors });
+        }
+        customFields = result.cleaned;
+        formVersion = form.version;
+      }
+    }
+
+    const capture = await captureLead({
+      channel: input.landingPageSlug ? `web:${input.landingPageSlug}` : 'web',
+      sourceSlug: input.sourceSlug ?? (input.landingPageSlug ? 'landing-page' : 'website'),
+      landingPageId,
       contact: input,
       attribution: input,
-      customFields: input.customFields,
+      customFields,
       message: input.message,
-      rawPayload: input,
+      rawPayload: { ...input, formVersion },
       meta,
     });
+
+    // Conversion counter — only for brand-new leads from a page.
+    if (landingPageId && !capture.duplicate) {
+      prisma.landingPage
+        .update({ where: { id: landingPageId }, data: { conversionCount: { increment: 1 } } })
+        .catch((err) => logger.warn({ err }, 'conversion count increment failed'));
+    }
+    return capture;
   },
 
   async chatbot(input: ChatbotIntakeInput, meta: ClientMeta): Promise<CaptureResult> {

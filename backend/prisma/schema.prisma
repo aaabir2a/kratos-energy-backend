@@ -120,6 +120,9 @@ model User {
   createdDeals     Deal[]             @relation("DealCreatedBy")
   dealStageChanges DealStageHistory[]
 
+  // Phase 5 — landing pages
+  createdPages LandingPage[] @relation("PageCreatedBy")
+
   @@index([officeId])
   @@index([roleId])
   @@index([isActive])
@@ -331,6 +334,9 @@ model Lead {
   // Phase 4
   deals Deal[]
 
+  // Phase 5
+  landingPage LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
+
   @@index([campaignId])
   @@index([officeId])
   @@index([stageId])
@@ -464,6 +470,7 @@ model MarketingCampaign {
 
   leads        Lead[]
   attributions LeadAttribution[]
+  landingPages LandingPage[]
 
   @@index([utmCampaign])
   @@map("marketing_campaigns")
@@ -619,4 +626,67 @@ model DealStageHistory {
 
   @@index([dealId, changedAt])
   @@map("deal_stage_history")
+}
+
+// ═════════════════════════════════════════════════════════════
+// PHASE 5 — Landing Pages & Dynamic Forms (PDF schema, extended)
+// ═════════════════════════════════════════════════════════════
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model LandingPage {
+  id                  String     @id @default(uuid()) @db.Uuid
+  officeId            String?    @map("office_id") @db.Uuid
+  campaignId          String?    @map("campaign_id") @db.Uuid
+  packageId           String?    @map("package_id") @db.Uuid // FK in Phase 6
+  title               String
+  urlSlug             String     @unique @map("url_slug")
+  heroDescription     String?    @map("hero_description")
+  heroImageUrl        String?    @map("hero_image_url")
+  detailedDescription String?    @map("detailed_description") // HTML/JSON from rich editor (PDF)
+  thankYouMessage     String?    @map("thank_you_message")
+  redirectUrl         String?    @map("redirect_url")
+  seoMeta             Json?      @map("seo_meta")
+  themeConfig         Json?      @map("theme_config")
+  status              PageStatus @default(DRAFT)
+  publishedAt         DateTime?  @map("published_at") @db.Timestamptz(6)
+  viewCount           Int        @default(0) @map("view_count")
+  conversionCount     Int        @default(0) @map("conversion_count")
+  createdById         String?    @map("created_by") @db.Uuid
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt           DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  campaign  MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdBy User?              @relation("PageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  forms CustomLeadForm[]
+  leads Lead[]
+
+  @@index([status])
+  @@index([campaignId])
+  @@map("landing_pages")
+}
+
+// Dynamic form definition (PDF fields_schema JSONB), versioned so historic
+// submissions validate against the schema that existed when submitted.
+model CustomLeadForm {
+  id               String   @id @default(uuid()) @db.Uuid
+  landingPageId    String   @map("landing_page_id") @db.Uuid
+  formTitle        String   @map("form_title")
+  fieldsSchema     Json     @map("fields_schema")
+  version          Int      @default(1)
+  isActive         Boolean  @default(true) @map("is_active")
+  submitButtonText String   @default("Get my free quote") @map("submit_button_text")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+
+  @@index([landingPageId])
+  @@map("custom_lead_forms")
 }

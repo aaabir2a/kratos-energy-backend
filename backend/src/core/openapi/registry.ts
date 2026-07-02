@@ -40,6 +40,13 @@ import {
   moveDealStageSchema,
   loseDealSchema,
 } from '../../modules/deals/deals.schema';
+// Marketing (Phase 5)
+import {
+  createPageSchema,
+  updatePageSchema,
+  createFormSchema,
+  updateFormSchema,
+} from '../../modules/marketing/marketing.schema';
 
 extendZodWithOpenApi(z);
 
@@ -173,6 +180,16 @@ path({ method: 'post', path: '/deals/{id}/items', tag: 'Deals', summary: 'Add li
 path({ method: 'patch', path: '/deals/{id}/stage', tag: 'Deals', summary: 'Move deal stage', params: idParam, body: moveDealStageSchema });
 path({ method: 'post', path: '/deals/{id}/win', tag: 'Deals', summary: 'Close won', params: idParam });
 path({ method: 'post', path: '/deals/{id}/lose', tag: 'Deals', summary: 'Close lost (+reason)', params: idParam, body: loseDealSchema });
+
+// ═══════════════ Marketing (Phase 5) ═══════════════
+path({ method: 'get', path: '/landing-pages', tag: 'Marketing', summary: 'List landing pages' });
+path({ method: 'post', path: '/landing-pages', tag: 'Marketing', summary: 'Create landing page', body: createPageSchema, created: true });
+path({ method: 'get', path: '/landing-pages/{id}', tag: 'Marketing', summary: 'Get page (+forms, metrics)', params: idParam });
+path({ method: 'patch', path: '/landing-pages/{id}', tag: 'Marketing', summary: 'Update page (incl. status publish/archive)', params: idParam, body: updatePageSchema });
+path({ method: 'delete', path: '/landing-pages/{id}', tag: 'Marketing', summary: 'Archive page', params: idParam });
+path({ method: 'post', path: '/landing-pages/{id}/forms', tag: 'Marketing', summary: 'Create dynamic form (fields_schema)', params: idParam, body: createFormSchema, created: true });
+path({ method: 'patch', path: '/forms/{id}', tag: 'Marketing', summary: 'Update form (schema change bumps version)', params: idParam, body: updateFormSchema });
+path({ method: 'get', path: '/p/{slug}', tag: 'Marketing', summary: 'PUBLIC: fetch published page + active form (increments views)', auth: false, params: z.object({ slug: z.string() }) });
 
 // ═══════════════ Campaigns (Phase 3) ═══════════════
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });

@@ -7,13 +7,16 @@ import type {
   Deal,
   DealItem,
   DealStats,
+  LandingPage,
   Lead,
   LeadActivity,
   LeadAttributionRow,
   LeadListItem,
   LeadNote,
+  LeadForm,
   LeadSource,
   LeadStats,
+  PublicPage,
   Office,
   Permission,
   PipelineColumn,
@@ -120,6 +123,25 @@ export const sourcesApi = {
 
 export const campaignsApi = {
   list: () => api.get<ApiSuccess<CampaignRow[]>>('/campaigns').then((r) => r.data.data),
+};
+
+// ── Marketing (Phase 5) ───────────────────────────────
+export const marketingApi = {
+  listPages: (params?: { search?: string; status?: string; limit?: number }) =>
+    api.get<ApiSuccess<LandingPage[]>>('/landing-pages', { params }).then((r) => r.data),
+  getPage: (id: string) => api.get<ApiSuccess<LandingPage>>(`/landing-pages/${id}`).then((r) => r.data.data),
+  createPage: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<LandingPage>>('/landing-pages', body).then((r) => r.data.data),
+  updatePage: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<LandingPage>>(`/landing-pages/${id}`, body).then((r) => r.data.data),
+  removePage: (id: string) => api.delete(`/landing-pages/${id}`),
+  createForm: (pageId: string, body: Record<string, unknown>) =>
+    api.post<ApiSuccess<LeadForm>>(`/landing-pages/${pageId}/forms`, body).then((r) => r.data.data),
+  updateForm: (formId: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<LeadForm>>(`/forms/${formId}`, body).then((r) => r.data.data),
+  publicPage: (slug: string) => api.get<ApiSuccess<PublicPage>>(`/p/${slug}`).then((r) => r.data.data),
+  publicSubmit: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<{ message: string; reference?: string }>>('/leads/submit', body).then((r) => r.data.data),
 };
 
 // ── Deals (Phase 4) ───────────────────────────────────

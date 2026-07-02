@@ -239,6 +239,62 @@ export interface DealStats {
   winRateMtd: number;
 }
 
+// ── Phase 5: Landing pages & forms ────────────────────
+export type PageStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface FormField {
+  field_name: string;
+  label: string;
+  type: 'text' | 'email' | 'phone' | 'number' | 'select' | 'multiselect' | 'radio' | 'checkbox' | 'textarea' | 'date';
+  required?: boolean;
+  options?: string[];
+  placeholder?: string;
+  help_text?: string;
+  order?: number;
+  validation?: { min?: number; max?: number; pattern?: string };
+}
+
+export interface LeadForm {
+  id: string;
+  formTitle: string;
+  fieldsSchema: FormField[];
+  version: number;
+  isActive: boolean;
+  submitButtonText: string;
+}
+
+export interface LandingPage {
+  id: string;
+  title: string;
+  urlSlug: string;
+  heroDescription: string | null;
+  heroImageUrl: string | null;
+  detailedDescription: string | null;
+  thankYouMessage: string | null;
+  redirectUrl: string | null;
+  seoMeta: { title?: string; description?: string } | null;
+  status: PageStatus;
+  publishedAt: string | null;
+  viewCount: number;
+  conversionCount: number;
+  createdAt: string;
+  campaign: { id: string; name: string } | null;
+  forms: LeadForm[];
+  _count?: { leads: number };
+}
+
+export interface PublicPage {
+  id: string;
+  title: string;
+  urlSlug: string;
+  heroDescription: string | null;
+  heroImageUrl: string | null;
+  detailedDescription: string | null;
+  thankYouMessage: string | null;
+  redirectUrl: string | null;
+  forms: LeadForm[];
+}
+
 export interface CampaignRow {
   id: string;
   name: string;

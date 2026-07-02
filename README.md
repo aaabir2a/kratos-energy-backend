@@ -13,8 +13,8 @@ Lead-management CRM for an Australian solar company. Capture leads (website / so
 | 2 | Leads, pipeline, round-robin assignment, activities | ✅ Done |
 | 3 | Source tracking & intake (attribution, public submit, social/chatbot webhooks) | ✅ Done |
 | 4 | Deals: convert, line items, stage pipeline, close won/lost | ✅ Done |
-| 5 | Landing pages & forms | ⏳ Next |
-| 6 | Catalog (products + packages) | Planned |
+| 5 | Landing pages & dynamic forms (builder, public /p/:slug, validation engine, metrics) | ✅ Done |
+| 6 | Catalog (products + packages) | ⏳ Next |
 
 ## Prerequisites
 - Node 20+
