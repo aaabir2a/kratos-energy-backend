@@ -15,7 +15,10 @@ import {
   UserCog,
   GitBranch,
   Zap,
+  Pencil,
 } from 'lucide-react';
+
+const AU_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +64,11 @@ export function LeadDetailPage() {
   const [convertOpen, setConvertOpen] = useState(false);
   const [dealValue, setDealValue] = useState('');
   const [dealClose, setDealClose] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    firstName: '', lastName: '', email: '', phone: '', secondaryPhone: '',
+    addressLine: '', suburb: '', state: '', postcode: '', estimatedSystemSize: '',
+  });
 
   const lead = useQuery({ queryKey: ['lead', id], queryFn: () => leadsApi.get(id) });
   const activities = useQuery({ queryKey: ['lead', id, 'activities'], queryFn: () => leadsApi.activities(id) });
@@ -118,6 +126,44 @@ export function LeadDetailPage() {
     },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
+  const saveEdit = useMutation({
+    mutationFn: () =>
+      leadsApi.update(id, {
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        email: editForm.email || null,
+        phone: editForm.phone || null,
+        secondaryPhone: editForm.secondaryPhone || null,
+        addressLine: editForm.addressLine || null,
+        suburb: editForm.suburb || null,
+        state: editForm.state || null,
+        postcode: editForm.postcode || null,
+        estimatedSystemSize: editForm.estimatedSystemSize || null,
+      }),
+    onSuccess: () => {
+      toast.success('Lead updated');
+      setEditOpen(false);
+      invalidate();
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
+  function openEdit() {
+    if (!lead.data) return;
+    const l = lead.data;
+    setEditForm({
+      firstName: l.firstName,
+      lastName: l.lastName,
+      email: l.email ?? '',
+      phone: l.phone ?? '',
+      secondaryPhone: l.secondaryPhone ?? '',
+      addressLine: l.addressLine ?? '',
+      suburb: l.suburb ?? '',
+      state: l.state ?? '',
+      postcode: l.postcode ?? '',
+      estimatedSystemSize: l.estimatedSystemSize ?? '',
+    });
+    setEditOpen(true);
+  }
   const markContacted = useMutation({
     mutationFn: () => chatApi.markContacted(id),
     onSuccess: () => {
@@ -179,12 +225,95 @@ export function LeadDetailPage() {
             </div>
           </div>
         </div>
-        {l.status === 'OPEN' && can('leads.convert') && (
-          <Button onClick={() => setConvertOpen(true)}>
-            <Zap className="h-4 w-4" /> Convert to deal
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canEdit && (
+            <Button variant="outline" onClick={openEdit}>
+              <Pencil className="h-4 w-4" /> Edit
+            </Button>
+          )}
+          {l.status === 'OPEN' && can('leads.convert') && (
+            <Button onClick={() => setConvertOpen(true)}>
+              <Zap className="h-4 w-4" /> Convert to deal
+            </Button>
+          )}
+        </div>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit lead</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveEdit.mutate();
+            }}
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>First name</Label>
+                <Input required value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Last name</Label>
+                <Input required value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" placeholder="add an email…" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Secondary phone</Label>
+                <Input value={editForm.secondaryPhone} onChange={(e) => setEditForm({ ...editForm, secondaryPhone: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>System size</Label>
+                <Input placeholder="6.6kW" value={editForm.estimatedSystemSize} onChange={(e) => setEditForm({ ...editForm, estimatedSystemSize: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Input value={editForm.addressLine} onChange={(e) => setEditForm({ ...editForm, addressLine: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Suburb</Label>
+                <Input value={editForm.suburb} onChange={(e) => setEditForm({ ...editForm, suburb: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>State</Label>
+                <Select value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}>
+                  <option value="">—</option>
+                  {AU_STATES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Postcode</Label>
+                <Input value={editForm.postcode} onChange={(e) => setEditForm({ ...editForm, postcode: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={saveEdit.isPending}>
+                {saveEdit.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Save changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
         <DialogContent>

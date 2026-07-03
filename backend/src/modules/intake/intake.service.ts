@@ -93,6 +93,18 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
     : null;
 
   if (existing) {
+    // Enrich the existing lead with any contact fields it's missing —
+    // a repeat enquiry often carries new info (e.g. email this time).
+    const fill: Prisma.LeadUpdateInput = {};
+    if (!existing.email && email) fill.email = email;
+    if (!existing.phone && phone) fill.phone = phone;
+    if (!existing.suburb && args.contact.suburb) fill.suburb = args.contact.suburb;
+    if (!existing.state && args.contact.state) fill.state = args.contact.state;
+    if (!existing.postcode && args.contact.postcode) fill.postcode = args.contact.postcode;
+    if (Object.keys(fill).length) {
+      await prisma.lead.update({ where: { id: existing.id }, data: fill });
+    }
+
     // Re-submission: append last-touch attribution, log activity, archive payload.
     await prisma.$transaction([
       prisma.leadAttribution.create({
