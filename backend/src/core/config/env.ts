@@ -18,6 +18,17 @@ const envSchema = z.object({
 
   INTAKE_WEBHOOK_SECRET: z.string().min(16).default('dev_webhook_secret_change_me'),
 
+  // MinIO object storage (hero images etc.)
+  MINIO_ENDPOINT: z.string().default(''),
+  MINIO_PORT: z.coerce.number().default(9000),
+  MINIO_USE_SSL: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  MINIO_ACCESS_KEY: z.string().default(''),
+  MINIO_SECRET_KEY: z.string().default(''),
+  MINIO_BUCKET: z.string().default('kratos-uploads'),
+
   // Chatbot platform (CRM_DEVELOPER_GUIDE.md). Key empty => integration disabled.
   CHATBOT_API_BASE: z.string().url().default('https://api.ambrosianuk.com'),
   CHATBOT_CRM_KEY: z.string().default(''),

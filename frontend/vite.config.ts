@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     port: 5173,
     allowedHosts: [
-      'emissions-throat-mazda-remedy.trycloudflare.com',
+      'acknowledge-spend-shower-difficulty.trycloudflare.com',
     ],
     proxy: {
       '/api': {

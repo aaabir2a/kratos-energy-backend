@@ -816,3 +816,34 @@ model ChatMessage {
   @@index([conversationId, sentAt])
   @@map("chat_messages")
 }
+
+// ═════════════════════════════════════════════════════════════
+// WEBSITE MEDIA — hero images served to the main website.
+// Original kept untouched in MinIO; optimized WebP rendition
+// generated for fast landing-page delivery.
+// ═════════════════════════════════════════════════════════════
+
+enum HeroVariant {
+  DESKTOP
+  MOBILE
+}
+
+model HeroImage {
+  id          String      @id @default(uuid()) @db.Uuid
+  variant     HeroVariant
+  bucket      String
+  key         String // optimized webp (served to the website)
+  originalKey String      @map("original_key") // untouched upload
+  url         String
+  originalUrl String      @map("original_url")
+  width       Int
+  height      Int
+  sizeBytes   Int         @map("size_bytes")
+  isActive    Boolean     @default(true) @map("is_active")
+  sortOrder   Int         @default(0) @map("sort_order")
+  createdById String?     @map("created_by") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([variant, isActive, sortOrder])
+  @@map("hero_images")
+}

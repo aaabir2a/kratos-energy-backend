@@ -238,6 +238,12 @@ path({ method: 'post', path: '/chatbot/conversations/{id}/reply', tag: 'Chatbot'
 path({ method: 'post', path: '/chatbot/conversations/{id}/release', tag: 'Chatbot', summary: 'Hand chat back to the AI', params: idParam });
 path({ method: 'post', path: '/chatbot/leads/{id}/contacted', tag: 'Chatbot', summary: 'Write-back: mark lead contacted on the platform', params: idParam });
 
+// ═══════════════ Media / Hero images ═══════════════
+path({ method: 'get', path: '/media/hero', tag: 'Media', summary: 'List hero images (staff)' });
+path({ method: 'post', path: '/media/hero', tag: 'Media', summary: 'Upload hero image (multipart: file + variant DESKTOP|MOBILE; aspect + min-size validated; original kept, WebP rendition generated)' });
+path({ method: 'delete', path: '/media/hero/{id}', tag: 'Media', summary: 'Delete hero image (removes from MinIO)', params: idParam });
+path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
+
 // ═══════════════ Campaigns (Phase 3) ═══════════════
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });
 path({ method: 'post', path: '/campaigns', tag: 'Campaigns', summary: 'Create campaign', body: createCampaignSchema, created: true });

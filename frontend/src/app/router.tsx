@@ -18,6 +18,7 @@ import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
 import { ChatInboxPage } from '@/features/chat/ChatInboxPage';
+import { HeroImagesPage } from '@/features/media/HeroImagesPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
@@ -71,6 +72,10 @@ export const router = createBrowserRouter([
           {
             element: <RequirePermission perm="leads.read" />,
             children: [{ path: '/chat', element: <ChatInboxPage /> }],
+          },
+          {
+            element: <RequirePermission perm="landing_pages.read" />,
+            children: [{ path: '/website/images', element: <HeroImagesPage /> }],
           },
           {
             element: <RequirePermission perm="users.read" />,

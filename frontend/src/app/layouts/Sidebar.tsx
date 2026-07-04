@@ -12,6 +12,7 @@ import {
   PackageOpen,
   Boxes,
   MessageSquare,
+  Images,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -45,6 +46,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { to: '/website/products', label: 'Products', icon: PackageOpen, perm: 'catalog.read' },
       { to: '/website/packages', label: 'Packages', icon: Boxes, perm: 'catalog.read' },
+      { to: '/website/images', label: 'Image Uploads', icon: Images, perm: 'landing_pages.read' },
     ],
   },
   {
