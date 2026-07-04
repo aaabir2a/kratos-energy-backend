@@ -1,16 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
-import Cropper, { type Area } from 'react-easy-crop';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImagePlus, Loader2, Trash2, Monitor, Smartphone, Copy, Crop as CropIcon } from 'lucide-react';
+import { ImagePlus, Loader2, Trash2, Monitor, Smartphone, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/PageHeader';
 import { api, apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ImageEditor, type EditorJob, type EditorSpec } from './ImageEditor';
 
 type Variant = 'DESKTOP' | 'MOBILE';
 
@@ -24,11 +22,13 @@ interface HeroImage {
   sizeBytes: number;
 }
 
-const SPECS: Record<Variant, { aspect: number; minW: number; minH: number; title: string; hint: string; icon: React.ElementType }> = {
+const SPECS: Record<Variant, EditorSpec & { title: string; hint: string; icon: React.ElementType }> = {
   DESKTOP: {
     aspect: 16 / 9,
     minW: 2400,
     minH: 1350,
+    label: 'Desktop 16:9',
+    targetText: '2560 × 1440 px',
     title: 'Desktop view',
     hint: 'Landscape 16:9 — 2560 × 1440 px recommended (2400 × 1350 minimum)',
     icon: Monitor,
@@ -37,38 +37,21 @@ const SPECS: Record<Variant, { aspect: number; minW: number; minH: number; title
     aspect: 3 / 4,
     minW: 1080,
     minH: 1440,
+    label: 'Mobile 3:4',
+    targetText: '1200 × 1600 px',
     title: 'Mobile view',
     hint: 'Portrait 3:4 — 1200 × 1600 px recommended (1080 × 1440 minimum)',
     icon: Smartphone,
   },
 };
 
-// Crop at the image's NATIVE resolution — no downscaling, quality preserved.
-async function cropAtFullResolution(src: string, area: Area): Promise<Blob> {
-  const img = new Image();
-  img.src = src;
-  await new Promise((res, rej) => {
-    img.onload = res;
-    img.onerror = rej;
-  });
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(area.width);
-  canvas.height = Math.round(area.height);
-  const ctx = canvas.getContext('2d')!;
-  ctx.imageSmoothingEnabled = false; // 1:1 pixel copy — nothing resampled
-  ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, canvas.width, canvas.height);
-  return new Promise((res, rej) =>
-    canvas.toBlob((b) => (b ? res(b) : rej(new Error('crop failed'))), 'image/jpeg', 0.97),
-  );
-}
-
-function readDims(file: File): Promise<{ w: number; h: number; url: string }> {
+function readDims(file: File): Promise<EditorJob> {
   return new Promise((res, rej) => {
-    const url = URL.createObjectURL(file);
+    const src = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight, url });
+    img.onload = () => res({ src, fileName: file.name, width: img.naturalWidth, height: img.naturalHeight });
     img.onerror = rej;
-    img.src = url;
+    img.src = src;
   });
 }
 
@@ -78,14 +61,7 @@ function UploadPanel({ variant }: { variant: Variant }) {
   const { can } = usePermissions();
   const canWrite = can('landing_pages.write');
   const fileRef = useRef<HTMLInputElement>(null);
-
-  // Cropper state
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [cropFileName, setCropFileName] = useState('image.jpg');
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [areaPixels, setAreaPixels] = useState<Area | null>(null);
-  const [srcDims, setSrcDims] = useState<{ w: number; h: number } | null>(null);
+  const [queue, setQueue] = useState<EditorJob[]>([]); // mismatched files → editor, one at a time
 
   const images = useQuery({
     queryKey: ['hero-images'],
@@ -94,10 +70,10 @@ function UploadPanel({ variant }: { variant: Variant }) {
   const mine = (images.data ?? []).filter((i) => i.variant === variant);
 
   const upload = useMutation({
-    mutationFn: async (blob: Blob | File) => {
+    mutationFn: async ({ blob, name }: { blob: Blob; name: string }) => {
       const fd = new FormData();
       fd.append('variant', variant);
-      fd.append('file', blob, blob instanceof File ? blob.name : cropFileName);
+      fd.append('file', blob, name);
       return api.post('/media/hero', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     onSuccess: () => {
@@ -119,45 +95,45 @@ function UploadPanel({ variant }: { variant: Variant }) {
   const onFiles = useCallback(
     async (files: FileList | null) => {
       if (!files?.length) return;
+      const needEditing: EditorJob[] = [];
       for (const file of Array.from(files)) {
         try {
-          const { w, h, url } = await readDims(file);
-          const aspectOk = Math.abs(w / h - spec.aspect) / spec.aspect <= 0.02;
-          if (w < spec.minW || h < spec.minH) {
-            // Too small even before cropping — cropping can't add pixels.
-            toast.error(`${file.name}: ${w}×${h} is below the ${spec.minW}×${spec.minH} minimum — use a larger image`);
-            URL.revokeObjectURL(url);
+          const job = await readDims(file);
+          if (job.width < spec.minW || job.height < spec.minH) {
+            toast.error(
+              `${file.name}: ${job.width}×${job.height} is below the ${spec.minW}×${spec.minH} minimum — editing can't add pixels, use a larger image`,
+            );
+            URL.revokeObjectURL(job.src);
             continue;
           }
+          const aspectOk = Math.abs(job.width / job.height - spec.aspect) / spec.aspect <= 0.02;
           if (aspectOk) {
-            upload.mutate(file);
-            URL.revokeObjectURL(url);
+            upload.mutate({ blob: file, name: file.name });
+            URL.revokeObjectURL(job.src);
           } else {
-            // Wrong shape → open the full-resolution cropper.
-            setSrcDims({ w, h });
-            setCropFileName(file.name.replace(/\.\w+$/, '') + '-cropped.jpg');
-            setCropSrc(url);
-            setCrop({ x: 0, y: 0 });
-            setZoom(1);
+            needEditing.push(job); // wrong shape → built-in editor
           }
         } catch {
           toast.error(`${file.name}: could not read image`);
         }
       }
+      if (needEditing.length) {
+        setQueue((q) => [...q, ...needEditing]);
+        toast.info(
+          needEditing.length === 1
+            ? `${needEditing[0].fileName} needs fitting to ${spec.label} — opening the editor`
+            : `${needEditing.length} images need fitting to ${spec.label} — opening the editor`,
+        );
+      }
     },
     [spec, upload],
   );
 
-  async function confirmCrop() {
-    if (!cropSrc || !areaPixels) return;
-    if (areaPixels.width < spec.minW || areaPixels.height < spec.minH) {
-      toast.error(`Crop is ${Math.round(areaPixels.width)}×${Math.round(areaPixels.height)} — below the ${spec.minW}×${spec.minH} minimum. Zoom out to include more of the image.`);
-      return;
-    }
-    const blob = await cropAtFullResolution(cropSrc, areaPixels);
-    upload.mutate(blob);
-    URL.revokeObjectURL(cropSrc);
-    setCropSrc(null);
+  function advanceQueue() {
+    setQueue((q) => {
+      if (q[0]) URL.revokeObjectURL(q[0].src);
+      return q.slice(1);
+    });
   }
 
   const Icon = spec.icon;
@@ -181,10 +157,26 @@ function UploadPanel({ variant }: { variant: Variant }) {
               onFiles(e.dataTransfer.files);
             }}
           >
-            {upload.isPending ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <ImagePlus className="h-6 w-6 text-muted-foreground" />}
+            {upload.isPending ? (
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            ) : (
+              <ImagePlus className="h-6 w-6 text-muted-foreground" />
+            )}
             <p className="text-sm font-medium">Drop images here or click to browse</p>
-            <p className="text-xs text-muted-foreground">JPEG / PNG / WebP · multiple files supported · wrong shapes open the cropper</p>
-            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
+            <p className="text-xs text-muted-foreground">
+              JPEG / PNG / WebP · multiple files · wrong shapes open the built-in editor
+            </p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                onFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
           </div>
         )}
 
@@ -196,7 +188,13 @@ function UploadPanel({ variant }: { variant: Variant }) {
           <div className={variant === 'DESKTOP' ? 'grid gap-3 sm:grid-cols-2' : 'grid grid-cols-2 gap-3 sm:grid-cols-3'}>
             {mine.map((img) => (
               <div key={img.id} className="group relative overflow-hidden rounded-lg border">
-                <img src={img.url} alt="" loading="lazy" className="w-full object-cover" style={{ aspectRatio: variant === 'DESKTOP' ? '16/9' : '3/4' }} />
+                <img
+                  src={img.url}
+                  alt=""
+                  loading="lazy"
+                  className="w-full object-cover"
+                  style={{ aspectRatio: variant === 'DESKTOP' ? '16/9' : '3/4' }}
+                />
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                   <span className="text-[10px] font-medium text-white">
                     {img.width}×{img.height} · {Math.round(img.sizeBytes / 1024)}KB webp
@@ -213,7 +211,11 @@ function UploadPanel({ variant }: { variant: Variant }) {
                       <Copy className="h-3.5 w-3.5" />
                     </button>
                     {canWrite && (
-                      <button className="rounded bg-white/20 p-1 text-white hover:bg-red-500" title="Delete" onClick={() => remove.mutate(img.id)}>
+                      <button
+                        className="rounded bg-white/20 p-1 text-white hover:bg-red-500"
+                        title="Delete"
+                        onClick={() => remove.mutate(img.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     )}
@@ -225,46 +227,17 @@ function UploadPanel({ variant }: { variant: Variant }) {
         )}
       </CardContent>
 
-      {/* Cropper dialog */}
-      <Dialog open={Boolean(cropSrc)} onOpenChange={(o) => !o && cropSrc && (URL.revokeObjectURL(cropSrc), setCropSrc(null))}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CropIcon className="h-4 w-4" /> Crop to {spec.title.toLowerCase()} ({variant === 'DESKTOP' ? '16:9' : '3:4'})
-            </DialogTitle>
-          </DialogHeader>
-          <div className="relative h-[420px] w-full overflow-hidden rounded-lg bg-black">
-            {cropSrc && (
-              <Cropper
-                image={cropSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={spec.aspect}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={(_a, px) => setAreaPixels(px)}
-              />
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">Zoom</span>
-            <input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 accent-primary" />
-            {areaPixels && srcDims && (
-              <span className={`text-xs ${areaPixels.width >= spec.minW ? 'text-muted-foreground' : 'text-destructive'}`}>
-                {Math.round(areaPixels.width)}×{Math.round(areaPixels.height)} px (min {spec.minW}×{spec.minH})
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Cropping happens at the image's full native resolution — pixels are copied 1:1, nothing is resampled or compressed until export (97% quality JPEG).
-          </p>
-          <DialogFooter>
-            <Button onClick={confirmCrop} disabled={upload.isPending}>
-              {upload.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Crop & upload
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ImageEditor
+        job={queue[0] ?? null}
+        spec={spec}
+        queueLeft={Math.max(0, queue.length - 1)}
+        busy={upload.isPending}
+        onConfirm={(blob, name) => {
+          upload.mutate({ blob, name });
+          advanceQueue();
+        }}
+        onCancel={advanceQueue}
+      />
     </Card>
   );
 }
