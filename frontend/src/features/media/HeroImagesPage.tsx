@@ -99,19 +99,13 @@ function UploadPanel({ variant }: { variant: Variant }) {
       for (const file of Array.from(files)) {
         try {
           const job = await readDims(file);
-          if (job.width < spec.minW || job.height < spec.minH) {
-            toast.error(
-              `${file.name}: ${job.width}×${job.height} is below the ${spec.minW}×${spec.minH} minimum — editing can't add pixels, use a larger image`,
-            );
-            URL.revokeObjectURL(job.src);
-            continue;
-          }
           const aspectOk = Math.abs(job.width / job.height - spec.aspect) / spec.aspect <= 0.02;
-          if (aspectOk) {
+          const sizeOk = job.width >= spec.minW && job.height >= spec.minH;
+          if (aspectOk && sizeOk) {
             upload.mutate({ blob: file, name: file.name });
             URL.revokeObjectURL(job.src);
           } else {
-            needEditing.push(job); // wrong shape → built-in editor
+            needEditing.push(job); // wrong shape or too small → built-in editor
           }
         } catch {
           toast.error(`${file.name}: could not read image`);

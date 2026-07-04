@@ -43,7 +43,7 @@ const NEUTRAL: Adjust = { brightness: 100, contrast: 100, saturation: 100 };
 // Geometry (rotation/crop) is applied on a canvas sized to the source pixels —
 // nothing is downscaled; adjustments are applied via canvas filters; final
 // encode is 97%-quality JPEG.
-async function renderEdit(src: string, area: Area, rotation: number, adj: Adjust): Promise<Blob> {
+async function renderEdit(src: string, area: Area, rotation: number, adj: Adjust, minW: number, minH: number): Promise<Blob> {
   const img = new Image();
   img.src = src;
   await new Promise((res, rej) => {
@@ -66,10 +66,14 @@ async function renderEdit(src: string, area: Area, rotation: number, adj: Adjust
   sctx.rotate(rad);
   sctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
 
+  // If the crop is below the platform minimum, upscale to exactly the minimum
+  // (aspect is already locked, so one factor fits both axes). Otherwise 1:1.
+  const scale = Math.max(1, minW / area.width, minH / area.height);
   const out = document.createElement('canvas');
-  out.width = Math.round(area.width);
-  out.height = Math.round(area.height);
+  out.width = Math.round(area.width * scale);
+  out.height = Math.round(area.height * scale);
   const octx = out.getContext('2d')!;
+  octx.imageSmoothingEnabled = true;
   octx.imageSmoothingQuality = 'high';
   octx.drawImage(stage, area.x, area.y, area.width, area.height, 0, 0, out.width, out.height);
 
@@ -162,7 +166,12 @@ export function ImageEditor({
   }, [job?.src]);
 
   const totalRotation = rotation + straighten;
-  const outOk = area ? area.width >= spec.minW && area.height >= spec.minH : false;
+  // Upscale factor needed to hit the platform minimum (1 = no upscaling).
+  const upscale = area ? Math.max(1, spec.minW / area.width, spec.minH / area.height) : 1;
+  const willUpscale = upscale > 1.001;
+  // Hard floor: refuse crops that would need more than 3× upscaling — beyond
+  // that the result is visibly blurry on a hero banner.
+  const outOk = Boolean(area) && upscale <= 3;
   const filterCss = useMemo(
     () => `brightness(${adj.brightness}%) contrast(${adj.contrast}%) saturate(${adj.saturation}%)`,
     [adj],
@@ -174,7 +183,7 @@ export function ImageEditor({
     if (!job || !area || !outOk) return;
     setRendering(true);
     try {
-      const blob = await renderEdit(job.src, area, totalRotation, adj);
+      const blob = await renderEdit(job.src, area, totalRotation, adj, spec.minW, spec.minH);
       onConfirm(blob, job.fileName.replace(/\.\w+$/, '') + '-edited.jpg');
     } finally {
       setRendering(false);
@@ -210,8 +219,8 @@ export function ImageEditor({
               <div>
                 <h2 className="text-sm font-semibold">Fit to {spec.label}</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  This image doesn't match the required shape. Frame it below — quality is preserved (edited at full
-                  resolution).
+                  This image doesn't match the required shape or size. Frame it below — editing happens at full
+                  resolution.
                 </p>
               </div>
 
@@ -230,12 +239,26 @@ export function ImageEditor({
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Ruler className="h-3.5 w-3.5" /> Your crop
                   </span>
-                  <span className={cn('font-semibold tabular-nums', outOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
+                  <span
+                    className={cn(
+                      'font-semibold tabular-nums',
+                      !outOk ? 'text-destructive' : willUpscale ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400',
+                    )}
+                  >
                     {area ? `${Math.round(area.width)} × ${Math.round(area.height)} px` : '—'}
                   </span>
                 </div>
-                {!outOk && area && (
-                  <p className="mt-1.5 text-[11px] text-destructive">Zoom out to include more of the image.</p>
+                {area && willUpscale && outOk && (
+                  <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                    Below the minimum — it will be upscaled ×{upscale.toFixed(1)} to {spec.minW} × {spec.minH}. Fine
+                    detail may soften; a larger source gives a sharper result.
+                  </p>
+                )}
+                {area && !outOk && (
+                  <p className="mt-1.5 text-[11px] text-destructive">
+                    This crop would need ×{upscale.toFixed(1)} upscaling — too blurry for a hero banner. Zoom out or use
+                    a larger image.
+                  </p>
                 )}
               </div>
 

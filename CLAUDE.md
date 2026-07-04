@@ -6,6 +6,8 @@ Lead-management CRM for Kratos Energy (Australian solar). Core loop: capture lea
 
 Phases 1–6 built + verified: auth/RBAC(4 roles: admin/manager/marketing/sales), leads+pipeline+round-robin, source attribution (first/last touch, UTM/gclid/fbclid), deals (convert/close, snapshot-priced items), landing pages + dynamic form engine (versioned `fields_schema`, server-validated), catalog (PDF schema: products/packages/package_products). Remaining: P7 notifications, P8 analytics, P9 hardening.
 
+**Hero image system live**: `POST /media/hero` (multipart, variant DESKTOP 16:9 min 2400×1350 / MOBILE 3:4 min 1080×1440), originals + WebP renditions in MinIO (creds in backend/.env, bucket kratos-uploads, hero/* public-read), public `GET /public/hero-images` → `{desktop:[],mobile:[]}`. UI: Website Settings → Image Uploads (full-res cropper on aspect mismatch). sharp needs Windows paths, not Git Bash /tmp.
+
 **Chatbot platform integration live** (guide: `D:\Kratos-office\chatbot\CRM_DEVELOPER_GUIDE.md`, platform api.ambrosianuk.com, X-CRM-Key): HMAC webhook receiver `/api/v1/chatbot/webhook`, auto lead ingestion w/ dedupe+enrichment, transcript mirror (chat_conversations/chat_messages), Chat Inbox UI at `/chat` (replay, live takeover/reply/release, 4s polling), `POST /chatbot/sync?full=true` backfill, lead status write-back. Real keys in `backend/.env` (never commit).
 
 ## Architecture
