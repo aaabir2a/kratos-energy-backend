@@ -145,6 +145,10 @@ export const marketingApi = {
   publicPage: (slug: string) => api.get<ApiSuccess<PublicPage>>(`/p/${slug}`).then((r) => r.data.data),
   publicSubmit: (body: Record<string, unknown>) =>
     api.post<ApiSuccess<{ message: string; reference?: string }>>('/leads/submit', body).then((r) => r.data.data),
+  // Global site form (singleton) — used by kratos-energy.com home/contact pages.
+  getGlobalForm: () => api.get<ApiSuccess<LeadForm | null>>('/forms/global').then((r) => r.data.data),
+  saveGlobalForm: (body: Record<string, unknown>) =>
+    api.put<ApiSuccess<LeadForm>>('/forms/global', body).then((r) => r.data.data),
 };
 
 // ── Catalog (Phase 6) ─────────────────────────────────

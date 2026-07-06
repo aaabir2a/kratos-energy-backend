@@ -12,6 +12,7 @@ import {
   updatePageSchema,
   createFormSchema,
   updateFormSchema,
+  upsertGlobalFormSchema,
   idParamSchema,
   slugParamSchema,
 } from './marketing.schema';
@@ -87,6 +88,25 @@ landingPagesRouter.post(
 export const formsRouter = Router();
 formsRouter.use(authenticate);
 
+// Global site form (singleton, not tied to a page). Literal paths declared
+// before /:id so they don't get captured as an id.
+formsRouter.get(
+  '/global',
+  requirePermission('forms.read'),
+  asyncHandler(async (_req, res) => ok(res, await marketingService.getGlobalForm())),
+);
+
+formsRouter.put(
+  '/global',
+  requirePermission('forms.write'),
+  validate({ body: upsertGlobalFormSchema }),
+  asyncHandler(async (req, res) => {
+    const form = await marketingService.upsertGlobalForm(req.body);
+    await audit({ userId: req.auth?.userId, action: 'global_form.upsert', entityType: 'custom_lead_form', entityId: form.id, ip: req.ip });
+    ok(res, form);
+  }),
+);
+
 formsRouter.patch(
   '/:id',
   requirePermission('forms.write'),
@@ -100,4 +120,12 @@ publicPagesRouter.get(
   '/:slug',
   validate({ params: slugParamSchema }),
   asyncHandler(async (req, res) => ok(res, await marketingService.publicPage(req.params.slug))),
+);
+
+// ── Public global-form delivery (no auth) ─────────────
+// Consumed by kratos-energy.com contact/home pages to render the shared form.
+export const publicFormRouter = Router();
+publicFormRouter.get(
+  '/lead-form',
+  asyncHandler(async (_req, res) => ok(res, await marketingService.publicGlobalForm())),
 );

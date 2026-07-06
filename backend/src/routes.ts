@@ -8,7 +8,7 @@ import { pipelineRouter } from './modules/pipeline/pipeline.routes';
 import { sourcesRouter, campaignsRouter } from './modules/sources/sources.routes';
 import { intakeRouter } from './modules/intake/intake.routes';
 import { dealsRouter, convertHandler } from './modules/deals/deals.routes';
-import { landingPagesRouter, formsRouter, publicPagesRouter } from './modules/marketing/marketing.routes';
+import { landingPagesRouter, formsRouter, publicPagesRouter, publicFormRouter } from './modules/marketing/marketing.routes';
 import { productsRouter, packagesRouter, publicCatalogRouter } from './modules/catalog/catalog.routes';
 import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.routes';
 import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
@@ -42,6 +42,7 @@ apiRouter.use('/deals', dealsRouter);
 apiRouter.use('/landing-pages', landingPagesRouter);
 apiRouter.use('/forms', formsRouter);
 apiRouter.use('/p', publicPagesRouter); // public page delivery, no auth
+apiRouter.use('/public', publicFormRouter); // global site form schema, no auth
 apiRouter.use('/products', productsRouter);
 apiRouter.use('/packages', packagesRouter);
 apiRouter.use('/public', publicCatalogRouter); // public catalog for the main website, no auth

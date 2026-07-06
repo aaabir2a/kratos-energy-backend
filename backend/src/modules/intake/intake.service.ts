@@ -266,6 +266,22 @@ export const intakeService = {
         customFields = result.cleaned;
         formVersion = form.version;
       }
+    } else {
+      // No landing page ⇒ global site form (contact/home). Validate against the
+      // CRM-managed global form if one is configured; otherwise pass through.
+      const globalForm = await prisma.customLeadForm.findFirst({
+        where: { isGlobal: true, isActive: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (globalForm) {
+        const fields = parseFieldsSchema(globalForm.fieldsSchema);
+        const result = validateSubmission(fields, input.customFields ?? {});
+        if (!result.valid) {
+          throw AppError.badRequest('Form validation failed', { fields: result.errors });
+        }
+        customFields = result.cleaned;
+        formVersion = globalForm.version;
+      }
     }
 
     const capture = await captureLead({

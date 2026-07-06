@@ -105,6 +105,55 @@ export const marketingService = {
     });
   },
 
+  // ── Global site form (singleton, not tied to a page) ─
+  // One shared form used by the contact + home pages on kratos-energy.com.
+  getGlobalForm() {
+    return prisma.customLeadForm.findFirst({
+      where: { isGlobal: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  },
+
+  // Create-or-update the single global form. Schema change ⇒ version bump so
+  // historic submissions still validate against the schema they saw.
+  async upsertGlobalForm(input: { formTitle: string; fieldsSchema: unknown; submitButtonText?: string; isActive?: boolean }) {
+    const existing = await this.getGlobalForm();
+    if (!existing) {
+      return prisma.customLeadForm.create({
+        data: {
+          isGlobal: true,
+          landingPageId: null,
+          formTitle: input.formTitle,
+          fieldsSchema: input.fieldsSchema as Prisma.InputJsonValue,
+          submitButtonText: input.submitButtonText,
+          isActive: input.isActive ?? true,
+        },
+      });
+    }
+    const schemaChanged =
+      JSON.stringify(existing.fieldsSchema) !== JSON.stringify(input.fieldsSchema);
+    return prisma.customLeadForm.update({
+      where: { id: existing.id },
+      data: {
+        formTitle: input.formTitle,
+        submitButtonText: input.submitButtonText,
+        isActive: input.isActive,
+        fieldsSchema: input.fieldsSchema as Prisma.InputJsonValue,
+        ...(schemaChanged ? { version: { increment: 1 } } : {}),
+      },
+    });
+  },
+
+  // Public delivery of the global form schema (no auth). null ⇒ not configured.
+  async publicGlobalForm() {
+    const form = await prisma.customLeadForm.findFirst({
+      where: { isGlobal: true, isActive: true },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, formTitle: true, fieldsSchema: true, version: true, submitButtonText: true },
+    });
+    return form ?? null;
+  },
+
   // ── Public delivery ────────────────────────────────
   async publicPage(slug: string) {
     const page = await prisma.landingPage.findFirst({

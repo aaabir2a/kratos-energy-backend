@@ -42,5 +42,13 @@ export const updateFormSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+// Global site form (singleton) — create-or-update in one call.
+export const upsertGlobalFormSchema = z.object({
+  formTitle: z.string().min(1).max(150),
+  fieldsSchema: fieldsSchemaSchema,
+  submitButtonText: z.string().max(60).optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const idParamSchema = z.object({ id: z.string().uuid() });
 export const slugParamSchema = z.object({ slug: z.string().min(1).max(120) });

@@ -683,7 +683,10 @@ model LandingPage {
 // submissions validate against the schema that existed when submitted.
 model CustomLeadForm {
   id               String   @id @default(uuid()) @db.Uuid
-  landingPageId    String   @map("landing_page_id") @db.Uuid
+  landingPageId    String?  @map("landing_page_id") @db.Uuid
+  // Global site form (contact/home on kratos-energy.com) — not tied to a page.
+  // Singleton: at most one active global form, enforced in the service layer.
+  isGlobal         Boolean  @default(false) @map("is_global")
   formTitle        String   @map("form_title")
   fieldsSchema     Json     @map("fields_schema")
   version          Int      @default(1)
@@ -692,9 +695,10 @@ model CustomLeadForm {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  landingPage LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  landingPage LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
 
   @@index([landingPageId])
+  @@index([isGlobal])
   @@map("custom_lead_forms")
 }
 

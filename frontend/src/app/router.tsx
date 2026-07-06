@@ -14,6 +14,7 @@ import { DealsPage } from '@/features/deals/DealsPage';
 import { DealDetailPage } from '@/features/deals/DealDetailPage';
 import { LandingPagesPage } from '@/features/marketing/LandingPagesPage';
 import { LandingPageEditorPage } from '@/features/marketing/LandingPageEditorPage';
+import { GlobalFormPage } from '@/features/marketing/GlobalFormPage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
           {
             element: <RequirePermission perm="landing_pages.read" />,
             children: [{ path: '/website/images', element: <HeroImagesPage /> }],
+          },
+          {
+            element: <RequirePermission perm="forms.read" />,
+            children: [{ path: '/website/lead-form', element: <GlobalFormPage /> }],
           },
           {
             element: <RequirePermission perm="users.read" />,

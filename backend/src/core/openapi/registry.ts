@@ -46,6 +46,7 @@ import {
   updatePageSchema,
   createFormSchema,
   updateFormSchema,
+  upsertGlobalFormSchema,
 } from '../../modules/marketing/marketing.schema';
 // Catalog (Phase 6)
 import {
@@ -96,7 +97,7 @@ function okResponse(desc = OK) {
 
 // ── Helper to cut path boilerplate ────────────────────
 interface PathOpts {
-  method: 'get' | 'post' | 'patch' | 'delete';
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
   path: string;
   tag: string;
   summary: string;
@@ -197,7 +198,10 @@ path({ method: 'patch', path: '/landing-pages/{id}', tag: 'Marketing', summary: 
 path({ method: 'delete', path: '/landing-pages/{id}', tag: 'Marketing', summary: 'Archive page', params: idParam });
 path({ method: 'post', path: '/landing-pages/{id}/forms', tag: 'Marketing', summary: 'Create dynamic form (fields_schema)', params: idParam, body: createFormSchema, created: true });
 path({ method: 'patch', path: '/forms/{id}', tag: 'Marketing', summary: 'Update form (schema change bumps version)', params: idParam, body: updateFormSchema });
+path({ method: 'get', path: '/forms/global', tag: 'Marketing', summary: 'Get the global site form (contact/home) — null if unset' });
+path({ method: 'put', path: '/forms/global', tag: 'Marketing', summary: 'Create-or-update the singleton global site form (schema change bumps version)', body: upsertGlobalFormSchema });
 path({ method: 'get', path: '/p/{slug}', tag: 'Marketing', summary: 'PUBLIC: fetch published page + active form (increments views)', auth: false, params: z.object({ slug: z.string() }) });
+path({ method: 'get', path: '/public/lead-form', tag: 'Marketing', summary: 'PUBLIC: fetch the active global site form schema (null if unset)', auth: false });
 
 // ═══════════════ Catalog (Phase 6) ═══════════════
 path({ method: 'get', path: '/products', tag: 'Catalog', summary: 'List products (staff, incl. inactive)' });
