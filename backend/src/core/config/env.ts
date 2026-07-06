@@ -55,5 +55,8 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 
-export const corsOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim());
+export const corsOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+// "*" (or empty) ⇒ reflect any Origin. Wildcard can't be a literal header value
+// alongside credentials, so we echo the request Origin instead.
+export const corsAllowAll = corsOrigins.includes('*') || corsOrigins.length === 0;
 export const isProd = env.NODE_ENV === 'production';

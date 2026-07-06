@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 import { buildOpenApiDocument } from './openapi/registry';
-import { env, corsOrigins } from './config/env';
+import { env, corsOrigins, corsAllowAll } from './config/env';
 import { logger } from './logger/logger';
 import { requestId } from './middlewares/requestId.middleware';
 import { globalRateLimiter } from './middlewares/rateLimit.middleware';
@@ -20,7 +20,8 @@ export function createServer(): Express {
   app.use(helmet());
   app.use(
     cors({
-      origin: corsOrigins,
+      // Reflect any Origin when allow-all is set; otherwise use the allowlist.
+      origin: corsAllowAll ? true : corsOrigins,
       credentials: true,
     }),
   );
