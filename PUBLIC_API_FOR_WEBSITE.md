@@ -178,6 +178,16 @@ Active hero images grouped by variant. Response is cached 5 minutes (`Cache-Cont
 A single shared, CRM-managed form. Fields are configured in the CRM
 (Website Settings → Lead Form) and change without a website deploy.
 
+> **Two field groups — don't confuse them.** Every lead needs a name + a way to be
+> contacted, so the website form must **always** render these fixed inputs (sent as
+> top-level keys, NOT inside `customFields`):
+> - `firstName` — **required**
+> - `email` **or** `phone` — at least one **required**
+>
+> The CRM builder only controls the *extra* fields, which you send inside
+> `customFields`. A submit with only `customFields` (no `firstName`/contact) is
+> rejected with `VALIDATION_ERROR`.
+
 ### 4a. Fetch the form schema (to render it)
 
 ```
