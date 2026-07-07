@@ -30,6 +30,8 @@ services:
     # reach a Postgres/MinIO that runs on the VPS host (see backend/.env note)
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
     ports:
       - "127.0.0.1:${API_PORT:-4000}:4000"
     networks:
@@ -44,6 +46,15 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  # Internal Redis for rate limiting (not exposed to the host).
+  redis:
+    image: redis:7-alpine
+    container_name: kratos-crm-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks:
+      - kratos
 
   web:
     build:
