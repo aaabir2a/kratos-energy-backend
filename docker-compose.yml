@@ -60,6 +60,10 @@ services:
     build:
       context: ./frontend
       target: runner
+      args:
+        # Absolute backend URL for the CRM bundle. Leave empty to use the
+        # same-origin /api proxy instead.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     image: kratos-crm-web:latest
     container_name: kratos-crm-web
     restart: unless-stopped

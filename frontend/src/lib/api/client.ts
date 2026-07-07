@@ -2,8 +2,11 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/auth.store';
 import type { ApiError } from './types';
 
+// Build-time API base. Defaults to a same-origin relative path (works behind the
+// CRM's own /api proxy); set VITE_API_BASE_URL to point at an absolute backend
+// origin, e.g. https://api.kratos-energy.com/api/v1.
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 });
 
