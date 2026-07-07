@@ -28,6 +28,10 @@ const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().default(''),
   MINIO_SECRET_KEY: z.string().default(''),
   MINIO_BUCKET: z.string().default('kratos-uploads'),
+  // Public base for object URLs handed to browsers/websites. Set this to an
+  // HTTPS origin (e.g. https://api.kratos-energy.com) so image URLs aren't
+  // blocked as mixed content on an HTTPS page. Empty => derive from endpoint.
+  MINIO_PUBLIC_BASE_URL: z.string().default(''),
 
   // Chatbot platform (CRM_DEVELOPER_GUIDE.md). Key empty => integration disabled.
   CHATBOT_API_BASE: z.string().url().default('https://api.ambrosianuk.com'),

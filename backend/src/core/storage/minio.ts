@@ -14,9 +14,13 @@ export function minioConfigured(): boolean {
   return Boolean(env.MINIO_ENDPOINT && env.MINIO_ACCESS_KEY && env.MINIO_SECRET_KEY);
 }
 
-// Direct URL — bucket policy makes hero/* public-read, so the website can
-// hot-link these (cacheable, no presign expiry).
+// Public URL for an object — bucket policy makes hero/* and catalog/* public-read,
+// so browsers/websites can hot-link these (cacheable, no presign expiry).
+// Prefer MINIO_PUBLIC_BASE_URL (an HTTPS origin) so URLs aren't blocked as mixed
+// content; fall back to the raw endpoint:port for local/dev.
 export function publicUrl(key: string): string {
+  const base = env.MINIO_PUBLIC_BASE_URL.replace(/\/$/, '');
+  if (base) return `${base}/${env.MINIO_BUCKET}/${key}`;
   const proto = env.MINIO_USE_SSL ? 'https' : 'http';
   return `${proto}://${env.MINIO_ENDPOINT}:${env.MINIO_PORT}/${env.MINIO_BUCKET}/${key}`;
 }
