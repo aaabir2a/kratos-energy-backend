@@ -15,6 +15,19 @@ import type { FormField } from '@/lib/api/types';
 
 const FIELD_TYPES = ['text', 'email', 'phone', 'number', 'select', 'multiselect', 'radio', 'checkbox', 'textarea', 'date'] as const;
 
+// A field can route its value into a core lead column. Name/email/phone forms
+// are built by mapping fields here.
+const MAP_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Custom field (extra)' },
+  { value: 'firstName', label: 'Core: First name' },
+  { value: 'lastName', label: 'Core: Last name' },
+  { value: 'email', label: 'Core: Email' },
+  { value: 'phone', label: 'Core: Phone' },
+  { value: 'suburb', label: 'Core: Suburb' },
+  { value: 'state', label: 'Core: State' },
+  { value: 'postcode', label: 'Core: Postcode' },
+];
+
 // Shared global lead form used by the home + contact pages on kratos-energy.com.
 // Fields edited here are validated server-side on every public submission and
 // delivered to the website via GET /public/lead-form.
@@ -42,6 +55,7 @@ export function GlobalFormPage() {
       const cleaned = fields.map((f, i) => ({
         ...f,
         order: i,
+        maps_to: f.maps_to || undefined,
         options: ['select', 'multiselect', 'radio'].includes(f.type) ? (f.options?.length ? f.options : ['Option 1']) : undefined,
       }));
       return marketingApi.saveGlobalForm({ formTitle, submitButtonText: submitText, fieldsSchema: cleaned });
@@ -69,6 +83,9 @@ export function GlobalFormPage() {
   if (globalForm.isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
 
   const existing = globalForm.data;
+  const hasFirstName = fields.some((f) => f.maps_to === 'firstName' && f.required);
+  const hasContact = fields.some((f) => f.maps_to === 'email' || f.maps_to === 'phone');
+  const mappingOk = hasFirstName && hasContact;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -102,6 +119,22 @@ export function GlobalFormPage() {
             </div>
           </div>
 
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">Map the name, email &amp; phone fields</p>
+            <p className="mt-0.5">
+              Set “Maps to” on each field that captures a core detail so it saves onto the lead (not just the custom
+              responses). Required to save:{' '}
+              <span className={hasFirstName ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                a required “First name” field
+              </span>{' '}
+              and{' '}
+              <span className={hasContact ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                an Email or Phone field
+              </span>
+              . Everything else is stored as a custom field.
+            </p>
+          </div>
+
           <div className="space-y-3">
             {fields.length === 0 && (
               <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -127,12 +160,27 @@ export function GlobalFormPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <Input
-                    className="w-44 font-mono text-xs"
+                    className="w-40 font-mono text-xs"
                     placeholder="field_name"
                     value={f.field_name}
                     onChange={(e) => updateField(i, { field_name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
                     disabled={!canForm}
                   />
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Maps to
+                    <Select
+                      className="h-8 w-auto min-w-[130px] text-xs"
+                      value={f.maps_to ?? ''}
+                      onChange={(e) => updateField(i, { maps_to: (e.target.value || undefined) as FormField['maps_to'] })}
+                      disabled={!canForm}
+                    >
+                      {MAP_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
                   <label className="flex items-center gap-1.5 text-xs">
                     <input type="checkbox" className="h-3.5 w-3.5 accent-primary" checked={f.required ?? false} onChange={(e) => updateField(i, { required: e.target.checked })} disabled={!canForm} />
                     Required
@@ -156,7 +204,7 @@ export function GlobalFormPage() {
               <Button variant="outline" size="sm" onClick={addField}>
                 <Plus className="h-4 w-4" /> Add field
               </Button>
-              <Button onClick={() => save.mutate()} disabled={save.isPending || !fields.length}>
+              <Button onClick={() => save.mutate()} disabled={save.isPending || !fields.length || !mappingOk} title={!mappingOk ? 'Map a required First name field and an Email or Phone field first' : undefined}>
                 {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {existing ? 'Save form (bumps version)' : 'Publish form'}
               </Button>

@@ -3,6 +3,7 @@ import { prisma } from '../../core/database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { buildMeta } from '../../shared/utils/pagination';
 import { logger } from '../../core/logger/logger';
+import { parseFieldsSchema } from './formEngine';
 
 const pageInclude = {
   campaign: { select: { id: true, name: true } },
@@ -117,6 +118,21 @@ export const marketingService = {
   // Create-or-update the single global form. Schema change ⇒ version bump so
   // historic submissions still validate against the schema they saw.
   async upsertGlobalForm(input: { formTitle: string; fieldsSchema: unknown; submitButtonText?: string; isActive?: boolean }) {
+    // Every lead needs a name + a contact channel. Guarantee the form always
+    // collects them by requiring the corresponding mapped fields — this is what
+    // keeps /public/lead-form exposing the required fields.
+    const fields = parseFieldsSchema(input.fieldsSchema);
+    const firstNameField = fields.find((f) => f.maps_to === 'firstName');
+    if (!firstNameField) {
+      throw AppError.badRequest('Add a field and set “Maps to → First name” — the form must collect a name.');
+    }
+    if (!firstNameField.required) {
+      throw AppError.badRequest('The field mapped to First name must be marked required.');
+    }
+    if (!fields.some((f) => f.maps_to === 'email' || f.maps_to === 'phone')) {
+      throw AppError.badRequest('Add a field mapped to Email or Phone — leads need a way to be contacted.');
+    }
+
     const existing = await this.getGlobalForm();
     if (!existing) {
       return prisma.customLeadForm.create({

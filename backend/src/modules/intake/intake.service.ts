@@ -3,7 +3,7 @@ import { prisma } from '../../core/database/prisma';
 import { logger } from '../../core/logger/logger';
 import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
-import { parseFieldsSchema, validateSubmission } from '../marketing/formEngine';
+import { parseFieldsSchema, validateSubmission, splitMappedFields, type FieldDescriptor } from '../marketing/formEngine';
 import type {
   AttributionInput,
   ChatbotIntakeInput,
@@ -242,11 +242,12 @@ export const intakeService = {
       return null;
     }
 
-    // Landing-page submission: validate dynamic fields against the page's
-    // stored fields_schema (PDF's validation engine). Missing/invalid → 400.
+    // Resolve the applicable form (landing-page or global) and validate dynamic
+    // fields against its stored fields_schema (PDF's validation engine).
     let landingPageId: string | null = null;
-    let customFields = input.customFields;
+    let customFields = input.customFields ?? {};
     let formVersion: number | null = null;
+    let fields: FieldDescriptor[] = [];
 
     if (input.landingPageSlug) {
       const page = await prisma.landingPage.findFirst({
@@ -255,40 +256,73 @@ export const intakeService = {
       });
       if (!page) throw AppError.badRequest('Unknown or unpublished landing page');
       landingPageId = page.id;
-
       const form = page.forms[0];
       if (form) {
-        const fields = parseFieldsSchema(form.fieldsSchema);
-        const result = validateSubmission(fields, input.customFields ?? {});
-        if (!result.valid) {
-          throw AppError.badRequest('Form validation failed', { fields: result.errors });
-        }
-        customFields = result.cleaned;
+        fields = parseFieldsSchema(form.fieldsSchema);
         formVersion = form.version;
       }
     } else {
-      // No landing page ⇒ global site form (contact/home). Validate against the
-      // CRM-managed global form if one is configured; otherwise pass through.
+      // No landing page ⇒ global site form (contact/home).
       const globalForm = await prisma.customLeadForm.findFirst({
         where: { isGlobal: true, isActive: true },
         orderBy: { createdAt: 'asc' },
       });
       if (globalForm) {
-        const fields = parseFieldsSchema(globalForm.fieldsSchema);
-        const result = validateSubmission(fields, input.customFields ?? {});
-        if (!result.valid) {
-          throw AppError.badRequest('Form validation failed', { fields: result.errors });
-        }
-        customFields = result.cleaned;
+        fields = parseFieldsSchema(globalForm.fieldsSchema);
         formVersion = globalForm.version;
       }
     }
+
+    if (fields.length) {
+      const result = validateSubmission(fields, input.customFields ?? {});
+      if (!result.valid) {
+        throw AppError.badRequest('Form validation failed', { fields: result.errors });
+      }
+      customFields = result.cleaned;
+    }
+
+    // Route mapped fields (maps_to) into core lead columns; top-level input
+    // fields fill anything not supplied by the form.
+    const { contact: mapped, custom } = splitMappedFields(fields, customFields);
+    customFields = custom;
+
+    const firstName = (mapped.firstName ?? input.firstName)?.trim();
+    const email = mapped.email ?? (input.email || undefined);
+    const phone = mapped.phone ?? input.phone;
+
+    // Minimum lead identity — enforced after mapping so a CRM-built form can
+    // satisfy it via mapped fields.
+    if (!firstName) {
+      throw AppError.badRequest('Form validation failed', {
+        fields: [{ field: 'firstName', message: 'A name is required' }],
+      });
+    }
+    if (!email && !phone) {
+      throw AppError.badRequest('Form validation failed', {
+        fields: [{ field: 'email', message: 'An email or phone number is required' }],
+      });
+    }
+
+    const contact = {
+      firstName,
+      lastName: mapped.lastName ?? input.lastName,
+      email,
+      phone,
+      addressLine: input.addressLine,
+      suburb: mapped.suburb ?? input.suburb,
+      state: mapped.state ?? input.state,
+      postcode: mapped.postcode ?? input.postcode,
+      propertyType: input.propertyType,
+      roofType: input.roofType,
+      estimatedSystemSize: input.estimatedSystemSize,
+      consentMarketing: input.consentMarketing,
+    };
 
     const capture = await captureLead({
       channel: input.landingPageSlug ? `web:${input.landingPageSlug}` : 'web',
       sourceSlug: input.sourceSlug ?? (input.landingPageSlug ? 'landing-page' : 'website'),
       landingPageId,
-      contact: input,
+      contact,
       attribution: input,
       customFields,
       message: input.message,

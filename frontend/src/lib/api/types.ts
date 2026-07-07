@@ -242,6 +242,8 @@ export interface DealStats {
 // ── Phase 5: Landing pages & forms ────────────────────
 export type PageStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
+export type FieldMapTarget = 'firstName' | 'lastName' | 'email' | 'phone' | 'suburb' | 'state' | 'postcode';
+
 export interface FormField {
   field_name: string;
   label: string;
@@ -251,6 +253,7 @@ export interface FormField {
   placeholder?: string;
   help_text?: string;
   order?: number;
+  maps_to?: FieldMapTarget;
   validation?: { min?: number; max?: number; pattern?: string };
 }
 

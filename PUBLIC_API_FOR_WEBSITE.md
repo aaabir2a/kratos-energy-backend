@@ -180,15 +180,14 @@ Active hero images grouped by variant. Response is cached 5 minutes (`Cache-Cont
 A single shared, CRM-managed form. Fields are configured in the CRM
 (Website Settings → Lead Form) and change without a website deploy.
 
-> **Two field groups — don't confuse them.** Every lead needs a name + a way to be
-> contacted, so the website form must **always** render these fixed inputs (sent as
-> top-level keys, NOT inside `customFields`):
-> - `firstName` — **required**
-> - `email` **or** `phone` — at least one **required**
->
-> The CRM builder only controls the *extra* fields, which you send inside
-> `customFields`. A submit with only `customFields` (no `firstName`/contact) is
-> rejected with `VALIDATION_ERROR`.
+> **One simple contract.** Render every field in `fieldsSchema` and submit all
+> values inside `customFields` (keyed by `field_name`) — nothing else needed.
+> Fields carry an optional **`maps_to`** telling the server to route that value
+> onto a core lead column (`firstName`, `email`, `phone`, …). The CRM guarantees
+> the form always includes a required **First name** field and an **Email or
+> Phone** field, so a `customFields`-only submit is enough to create a lead.
+> (Top-level `firstName`/`email`/`phone` are still accepted and win over mapped
+> values if you prefer to send them explicitly.)
 
 ### 4a. Fetch the form schema (to render it)
 
@@ -210,11 +209,27 @@ GET /public/lead-form
     "version": 2,
     "fieldsSchema": [
       {
-        "field_name": "enquiry_type",   // key you submit under
-        "label": "Enquiry type",        // show to visitor
-        "type": "select",
+        "field_name": "name",           // key you submit under (in customFields)
+        "label": "Your name",
+        "type": "text",
         "required": true,
         "order": 0,
+        "maps_to": "firstName"          // → routed onto the lead's firstName column
+      },
+      {
+        "field_name": "email",
+        "label": "Email",
+        "type": "email",
+        "required": true,
+        "order": 1,
+        "maps_to": "email"              // → lead.email
+      },
+      {
+        "field_name": "enquiry_type",   // no maps_to → stored as a custom response
+        "label": "Enquiry type",
+        "type": "select",
+        "required": true,
+        "order": 2,
         "options": ["Residential", "Commercial"],  // present for select/multiselect/radio
         "placeholder": "…",             // optional
         "help_text": "…",               // optional
@@ -238,6 +253,12 @@ GET /public/lead-form
 | `checkbox` | checkbox | boolean |
 | `date` | date | string `YYYY-MM-DD` |
 
+**`maps_to`** (optional, per field): when present the server routes the value onto that
+core lead column instead of the custom responses. Possible values: `firstName`,
+`lastName`, `email`, `phone`, `suburb`, `state`, `postcode`. Fields without `maps_to`
+are stored as custom responses. You don't need to treat mapped fields specially when
+rendering — just submit their values in `customFields` like any other field.
+
 ### 4b. Submit the form (creates a lead)
 
 ```
@@ -245,22 +266,14 @@ POST /leads/submit
 Content-Type: application/json
 ```
 
-**Body:**
+**Body — put every field's value in `customFields`, keyed by `field_name`:**
 
 ```jsonc
 {
-  "firstName": "Jane",              // required
-  "lastName": "Doe",                // optional
-  "email": "jane@example.com",      // email OR phone required
-  "phone": "0400 111 222",          // email OR phone required
-  "suburb": "Bondi",                // optional
-  "state": "NSW",                   // optional: NSW|VIC|QLD|WA|SA|TAS|ACT|NT
-  "postcode": "2026",               // optional
-  "message": "…",                   // optional free text
-  "consentMarketing": true,         // optional
-
-  "customFields": {                 // keyed by each field_name from the schema
-    "enquiry_type": "Residential"
+  "customFields": {
+    "name": "Jane Doe",             // maps_to firstName  → lead.firstName
+    "email": "jane@example.com",    // maps_to email      → lead.email
+    "enquiry_type": "Residential"   // no maps_to         → custom response
   },
 
   // Attribution (optional — pass through whatever you have)
@@ -272,11 +285,16 @@ Content-Type: application/json
 ```
 
 **What to send / notes:**
-- Provide **at least** `email` or `phone` — otherwise `400`.
-- `customFields` is validated server-side against the current form schema. Missing a
+- Submit **all** field values in `customFields` (keyed by `field_name`). Mapped fields
+  are routed onto the lead automatically.
+- `customFields` is validated server-side against the current form schema. A missing
   `required` field → `400` with per-field errors. Unknown keys are dropped silently.
+- After mapping, the lead still needs a name and an email **or** phone — the CRM form
+  guarantees these fields exist, so a valid submission always satisfies it.
 - Include the hidden `website` honeypot input in your form and leave it empty.
-- No `landingPageSlug` → the submission validates against this global form.
+- Optional: you may also send `firstName`/`email`/`phone` (and `lastName`, `suburb`,
+  `state`, `postcode`, `message`, `consentMarketing`) as **top-level** keys — these win
+  over mapped values if both are present.
 
 **Success:**
 

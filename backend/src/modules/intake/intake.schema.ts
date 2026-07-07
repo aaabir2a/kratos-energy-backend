@@ -15,9 +15,12 @@ export const attributionSchema = z.object({
 });
 
 // Public website/landing-page form submission.
+// Core contact fields are optional here because a CRM-built form may supply them
+// via mapped custom fields (maps_to). The "must have a name + email/phone" rule
+// is enforced in the service AFTER mapping is applied.
 export const publicSubmitSchema = z
   .object({
-    firstName: z.string().min(1).max(100),
+    firstName: z.string().max(100).optional(),
     lastName: z.string().max(100).optional().default(''),
     email: z.string().email().optional().or(z.literal('')),
     phone: z.string().max(50).optional(),
@@ -36,8 +39,7 @@ export const publicSubmitSchema = z
     // Honeypot — bots fill it, humans never see it. Non-empty => silently drop.
     website: z.string().optional(),
   })
-  .merge(attributionSchema)
-  .refine((d) => d.email || d.phone, { message: 'Provide at least an email or phone number' });
+  .merge(attributionSchema);
 
 // Chatbot webhook.
 export const chatbotIntakeSchema = z
