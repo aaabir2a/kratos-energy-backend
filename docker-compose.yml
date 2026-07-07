@@ -1,0 +1,80 @@
+# Kratos CRM — production stack.
+#
+# Isolated by design so it can share a VPS with other projects:
+#   - NO database container: connects to the existing LIVE Postgres.
+#   - Host ports bound to 127.0.0.1 only (never grabs :80/:443) — your host
+#     nginx proxies the two subdomains to these local ports.
+#   - Own private network + name-prefixed containers.
+#
+# Usage:
+#   cp .env.example .env                     # set API_PORT / WEB_PORT if 4000/8080 are taken
+#   # create backend/.env (see backend/.env.production.example)
+#   docker compose up -d --build
+#   # one-off DB migrate (only if schema changed):
+#   docker compose --profile tools run --rm migrate
+
+name: kratos-crm
+
+services:
+  api:
+    build:
+      context: ./backend
+      target: runner
+    image: kratos-crm-api:latest
+    container_name: kratos-crm-api
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+    # reach a Postgres/MinIO that runs on the VPS host (see backend/.env note)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+    networks:
+      - kratos
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  web:
+    build:
+      context: ./frontend
+      target: runner
+    image: kratos-crm-web:latest
+    container_name: kratos-crm-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    networks:
+      - kratos
+
+  # One-off migrations / seed. Not started by `up` (tools profile).
+  #   migrate:  docker compose --profile tools run --rm migrate
+  #   seed:     docker compose --profile tools run --rm migrate npx tsx prisma/seed.ts
+  migrate:
+    build:
+      context: ./backend
+      target: build
+    image: kratos-crm-tools:latest
+    profiles: [tools]
+    env_file: ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - kratos
+    command: ["npx", "prisma", "migrate", "deploy"]
+
+networks:
+  kratos:
+    name: kratos-crm-net
