@@ -274,7 +274,22 @@ export const intakeService = {
     }
 
     if (fields.length) {
-      const result = validateSubmission(fields, input.customFields ?? {});
+      // Backfill mapped fields from the matching top-level key when the form
+      // value is absent — so a caller may send e.g. email at the top level OR
+      // inside customFields; either satisfies the mapped form field.
+      const submitted: Record<string, unknown> = { ...(input.customFields ?? {}) };
+      for (const f of fields) {
+        if (f.maps_to) {
+          const cur = submitted[f.field_name];
+          if (cur === undefined || cur === null || cur === '') {
+            const topLevel = (input as Record<string, unknown>)[f.maps_to];
+            if (topLevel !== undefined && topLevel !== null && topLevel !== '') {
+              submitted[f.field_name] = topLevel;
+            }
+          }
+        }
+      }
+      const result = validateSubmission(fields, submitted);
       if (!result.valid) {
         throw AppError.badRequest('Form validation failed', { fields: result.errors });
       }
