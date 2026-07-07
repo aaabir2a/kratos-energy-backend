@@ -27,7 +27,7 @@ export async function ensureBucket(): Promise<void> {
   const bucket = env.MINIO_BUCKET;
   const exists = await minio.bucketExists(bucket).catch(() => false);
   if (!exists) await minio.makeBucket(bucket);
-  // Public read for the hero/ prefix only.
+  // Public read for the website-served prefixes (hero banners + catalog images).
   const policy = {
     Version: '2012-10-17',
     Statement: [
@@ -35,12 +35,12 @@ export async function ensureBucket(): Promise<void> {
         Effect: 'Allow',
         Principal: { AWS: ['*'] },
         Action: ['s3:GetObject'],
-        Resource: [`arn:aws:s3:::${bucket}/hero/*`],
+        Resource: [`arn:aws:s3:::${bucket}/hero/*`, `arn:aws:s3:::${bucket}/catalog/*`],
       },
     ],
   };
   await minio.setBucketPolicy(bucket, JSON.stringify(policy)).catch((err) => {
-    logger.warn({ err: (err as Error).message }, 'Could not set bucket policy (hero images may 403 publicly)');
+    logger.warn({ err: (err as Error).message }, 'Could not set bucket policy (public images may 403)');
   });
   ensured = true;
 }

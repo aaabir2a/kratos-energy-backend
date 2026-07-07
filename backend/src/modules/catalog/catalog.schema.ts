@@ -12,8 +12,15 @@ export const createProductSchema = z.object({
   officialUrl: z.string().url().max(1000).optional(),
 });
 
+// Allow clearing an image on update: '' or null → null (stored as NULL).
+const imageUrlUpdate = z
+  .union([z.string().url().max(1000), z.literal(''), z.null()])
+  .optional()
+  .transform((v) => (v === '' ? null : v));
+
 export const updateProductSchema = createProductSchema.partial().extend({
   isActive: z.boolean().optional(),
+  imageUrl: imageUrlUpdate,
 });
 
 export const createPackageSchema = z.object({
@@ -31,6 +38,7 @@ export const createPackageSchema = z.object({
 
 export const updatePackageSchema = createPackageSchema.partial().extend({
   isPublished: z.boolean().optional(),
+  imageUrl: imageUrlUpdate,
 });
 
 // Replace the full component list of a package (the "build package from products" op).

@@ -246,6 +246,7 @@ path({ method: 'post', path: '/chatbot/leads/{id}/contacted', tag: 'Chatbot', su
 path({ method: 'get', path: '/media/hero', tag: 'Media', summary: 'List hero images (staff)' });
 path({ method: 'post', path: '/media/hero', tag: 'Media', summary: 'Upload hero image (multipart: file + variant DESKTOP|MOBILE; aspect + min-size validated; original kept, WebP rendition generated)' });
 path({ method: 'delete', path: '/media/hero/{id}', tag: 'Media', summary: 'Delete hero image (removes from MinIO)', params: idParam });
+path({ method: 'post', path: '/media/catalog', tag: 'Media', summary: 'Upload a product/package image (multipart: file; cropped to 400×400 WebP; returns { url } to save on imageUrl)' });
 path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
 
 // ═══════════════ Campaigns (Phase 3) ═══════════════

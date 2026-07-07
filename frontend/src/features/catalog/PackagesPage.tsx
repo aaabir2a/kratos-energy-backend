@@ -24,6 +24,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { catalogApi } from '@/lib/api/endpoints';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ImageUploader } from './ImageUploader';
 import type { CatalogPackage } from '@/lib/api/types';
 
 const money = (v: string | number) => `$${Number(v).toLocaleString()}`;
@@ -37,6 +38,7 @@ const schema = z.object({
   power: z.string().min(1, 'Required'),
   description: z.string().optional(),
   estimatedPrice: z.coerce.number().nonnegative().optional(),
+  imageUrl: z.string().url().optional().or(z.literal('')),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -82,6 +84,14 @@ function PackageCard({ pkg, canWrite }: { pkg: CatalogPackage; canWrite: boolean
     },
     onError: (e) => toast.error(apiErrorMessage(e)),
   });
+  const setImage = useMutation({
+    mutationFn: (url: string) => catalogApi.updatePackage(pkg.id, { imageUrl: url || null }),
+    onSuccess: () => {
+      toast.success('Package image updated');
+      invalidate();
+    },
+    onError: (e) => toast.error(apiErrorMessage(e)),
+  });
 
   return (
     <Card>
@@ -119,6 +129,12 @@ function PackageCard({ pkg, canWrite }: { pkg: CatalogPackage; canWrite: boolean
           <span className="text-sm font-medium">Website price</span>
           <span className="text-lg font-semibold text-primary">{money(pkg.displayPrice)}</span>
         </div>
+
+        {canWrite && (
+          <div className="border-t pt-3">
+            <ImageUploader value={pkg.imageUrl ?? ''} onChange={(url) => setImage.mutate(url)} disabled={setImage.isPending} />
+          </div>
+        )}
 
         {canWrite && (
           <div className="flex flex-wrap gap-2 pt-1">
@@ -198,11 +214,12 @@ export function PackagesPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', slug: '', power: '', description: '', estimatedPrice: undefined },
+    defaultValues: { name: '', slug: '', power: '', description: '', estimatedPrice: undefined, imageUrl: '' },
   });
 
   const create = useMutation({
-    mutationFn: (v: FormValues) => catalogApi.createPackage({ ...v, description: v.description || undefined }),
+    mutationFn: (v: FormValues) =>
+      catalogApi.createPackage({ ...v, description: v.description || undefined, imageUrl: v.imageUrl || undefined }),
     onSuccess: () => {
       toast.success('Package created — now compose it from products');
       qc.invalidateQueries({ queryKey: ['packages'] });
@@ -288,6 +305,13 @@ export function PackagesPage() {
             <div className="space-y-2">
               <Label>Price override $ (optional — otherwise sum of components)</Label>
               <Input type="number" step="0.01" min={0} {...form.register('estimatedPrice')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Package image (optional)</Label>
+              <ImageUploader
+                value={form.watch('imageUrl')}
+                onChange={(url) => form.setValue('imageUrl', url, { shouldDirty: true })}
+              />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={create.isPending}>

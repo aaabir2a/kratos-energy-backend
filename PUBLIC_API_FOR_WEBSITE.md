@@ -76,6 +76,7 @@ Active products only. Sorted by category, then brand.
 ```
 
 > Display price to visitors = `finalPrice`. `stock` is a display attribute, not live inventory.
+> `imageUrl` is a **400×400 WebP** (square, cropped) when set, else `null`.
 
 ---
 
@@ -126,6 +127,7 @@ Published packages only, newest first. Each package embeds its component product
 ```
 
 > Show `displayPrice` as the headline package price.
+> `imageUrl` is a **400×400 WebP** (square, cropped) when set, else `null`.
 
 ### Single package by slug
 

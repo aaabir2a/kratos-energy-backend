@@ -171,6 +171,16 @@ export const catalogApi = {
   removePackage: (id: string) => api.delete(`/packages/${id}`),
   setPackageProducts: (id: string, products: { productId: string; quantity: number }[]) =>
     api.put<ApiSuccess<CatalogPackage>>(`/packages/${id}/products`, { products }).then((r) => r.data.data),
+  // Upload a product/package image → cropped to 400×400 WebP; returns its public URL.
+  uploadImage: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api
+      .post<ApiSuccess<{ url: string; width: number; height: number }>>('/media/catalog', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data.data);
+  },
 };
 
 // ── Chatbot integration ───────────────────────────────

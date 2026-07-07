@@ -30,6 +30,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { catalogApi } from '@/lib/api/endpoints';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ImageUploader } from './ImageUploader';
 import type { Product } from '@/lib/api/types';
 
 const schema = z.object({
@@ -90,8 +91,10 @@ export function ProductsPage() {
 
   const save = useMutation({
     mutationFn: (v: FormValues) => {
-      const body = { ...v, imageUrl: v.imageUrl || undefined, officialUrl: v.officialUrl || undefined };
-      return editing ? catalogApi.updateProduct(editing.id, body) : catalogApi.createProduct(body);
+      const officialUrl = v.officialUrl || undefined;
+      return editing
+        ? catalogApi.updateProduct(editing.id, { ...v, imageUrl: v.imageUrl || null, officialUrl })
+        : catalogApi.createProduct({ ...v, imageUrl: v.imageUrl || undefined, officialUrl });
     },
     onSuccess: () => {
       toast.success(editing ? 'Product updated' : 'Product created');
@@ -185,8 +188,19 @@ export function ProductsPage() {
               {rows.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <p className="font-medium">{p.brandName}</p>
-                    <p className="text-xs text-muted-foreground">{p.capacity}</p>
+                    <div className="flex items-center gap-3">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded border object-cover" />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded border bg-muted/40 text-muted-foreground/40">
+                          <PackageOpen className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{p.brandName}</p>
+                        <p className="text-xs text-muted-foreground">{p.capacity}</p>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{p.category}</Badge>
@@ -272,15 +286,17 @@ export function ProductsPage() {
                 <Input type="number" min={0} {...form.register('stock')} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Image URL (optional)</Label>
-                <Input {...form.register('imageUrl')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Official URL (optional)</Label>
-                <Input {...form.register('officialUrl')} />
-              </div>
+            <div className="space-y-2">
+              <Label>Product image (optional)</Label>
+              <ImageUploader
+                value={form.watch('imageUrl')}
+                onChange={(url) => form.setValue('imageUrl', url, { shouldDirty: true })}
+                disabled={!canWrite}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Official URL (optional)</Label>
+              <Input {...form.register('officialUrl')} />
             </div>
             <div className="flex items-center justify-between rounded-lg bg-primary/10 px-4 py-2.5">
               <span className="text-sm font-medium text-primary">Final price (base − rebates)</span>

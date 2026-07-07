@@ -120,6 +120,30 @@ mediaRouter.delete(
   }),
 );
 
+// Upload one catalog image (product or package). Single square image, cropped
+// to 400×400 (cover, centered) and stored as WebP. Returns the public URL to
+// save on the product/package's imageUrl.
+mediaRouter.post(
+  '/catalog',
+  requirePermission('catalog.write'),
+  upload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!minioConfigured()) throw AppError.badRequest('MinIO is not configured in the backend .env');
+    if (!req.file) throw AppError.badRequest('No file uploaded (multipart field "file")');
+
+    const key = `catalog/${randomUUID()}.webp`;
+    const webpBuf = await sharp(req.file.buffer)
+      .rotate()
+      .resize(400, 400, { fit: 'cover', position: 'centre' })
+      .webp({ quality: 90, effort: 5 })
+      .toBuffer();
+    await putObject(key, webpBuf, 'image/webp');
+
+    await audit({ userId: req.auth?.userId, action: 'catalog_image.upload', entityType: 'catalog_image', entityId: key, ip: req.ip });
+    created(res, { url: publicUrl(key), width: 400, height: 400 });
+  }),
+);
+
 // ── PUBLIC: consumed by www.kratos-energy.com ──
 export const publicMediaRouter = Router();
 
