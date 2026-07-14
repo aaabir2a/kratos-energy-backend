@@ -36,7 +36,7 @@ import type { Product } from '@/lib/api/types';
 const schema = z.object({
   category: z.string().min(1, 'Required'),
   brandName: z.string().min(1, 'Required'),
-  capacity: z.string().min(1, 'Required'),
+  capacity: z.string().min(1, 'Required').max(200, 'Max 200 characters'),
   stock: z.coerce.number().int().min(0),
   basePrice: z.coerce.number().nonnegative(),
   stateRebate: z.coerce.number().nonnegative(),

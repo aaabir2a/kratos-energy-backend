@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createProductSchema = z.object({
   category: z.string().min(1).max(100), // Inverter | Battery | Solar Panel | ...
   brandName: z.string().min(1).max(150),
-  capacity: z.string().min(1).max(50), // "440W", "5kW"
+  capacity: z.string().min(1).max(200), // "440W", "5kW"
   stock: z.number().int().min(0).default(0),
   basePrice: z.number().nonnegative(),
   stateRebate: z.number().nonnegative().default(0),
