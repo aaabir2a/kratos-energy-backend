@@ -44,6 +44,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
   MAIL_FROM: z.string().default(''), // e.g. "Kratos Sustainability <kratossenergy@gmail.com>"
+  MAIL_REPLY_TO: z.string().default(''), // optional Reply-To (e.g. info@kratos-energy.com)
   // CRM base URL used to build deep links in emails, e.g. https://crm.kratos-energy.com
   APP_BASE_URL: z.string().default(''),
   // Fallback shared recipients for admin notifications (comma-separated) until set in the UI.

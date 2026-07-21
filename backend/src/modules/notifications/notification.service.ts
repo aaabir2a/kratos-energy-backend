@@ -22,20 +22,42 @@ function appLink(entityType?: string, entityId?: string): string | null {
   return `${env.APP_BASE_URL.replace(/\/$/, '')}/${path}/${entityId}`;
 }
 
-// Minimal, email-client-safe HTML shell.
+// Company details shown in the branded footer (helps deliverability + trust).
+const BRAND = {
+  name: 'Kratos Sustainability',
+  website: 'https://www.kratos-energy.com',
+  websiteLabel: 'kratos-energy.com',
+  phone: '1300 089 547',
+  phoneHref: '1300089547',
+  green: '#6abf2e',
+  teal: '#175c4c',
+};
+
+// Email-client-safe HTML shell: branded header, content, CTA, and a footer with
+// real contact details + a "why you got this" line.
 function emailShell(title: string, lines: string[], cta?: { text: string; url: string | null }): string {
-  const body = lines.map((l) => `<p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.5">${l}</p>`).join('');
-  const button =
-    cta?.url
-      ? `<a href="${cta.url}" style="display:inline-block;background:#175c4c;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600">${cta.text}</a>`
-      : '';
-  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:24px">
-      <h1 style="margin:0 0 16px;color:#0f172a;font-size:18px">${title}</h1>
-      ${body}
-      ${button ? `<div style="margin-top:20px">${button}</div>` : ''}
+  const body = lines.map((l) => `<p style="margin:0 0 12px;color:#334155;font-size:14px;line-height:1.6">${l}</p>`).join('');
+  const button = cta?.url
+    ? `<div style="margin-top:20px"><a href="${cta.url}" style="display:inline-block;background:${BRAND.teal};color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:8px;font-size:14px;font-weight:600">${cta.text}</a></div>`
+    : '';
+  return `<div style="background:#f1f5f9;padding:24px 12px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
+      <div style="background:${BRAND.teal};padding:16px 24px">
+        <span style="color:#ffffff;font-size:16px;font-weight:700">Kratos</span><span style="color:${BRAND.green};font-size:16px;font-weight:700"> Sustainability</span>
+      </div>
+      <div style="padding:24px">
+        <h1 style="margin:0 0 16px;color:#0f172a;font-size:18px">${title}</h1>
+        ${body}
+        ${button}
+      </div>
+      <div style="border-top:1px solid #e2e8f0;padding:16px 24px;background:#f8fafc">
+        <p style="margin:0 0 4px;color:#64748b;font-size:12px">
+          <a href="${BRAND.website}" style="color:${BRAND.teal};text-decoration:none;font-weight:600">${BRAND.websiteLabel}</a>
+          &nbsp;·&nbsp; <a href="tel:${BRAND.phoneHref}" style="color:#64748b;text-decoration:none">${BRAND.phone}</a>
+        </p>
+        <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.5">You're receiving this because you're a user of the ${BRAND.name} CRM. This is an internal notification.</p>
+      </div>
     </div>
-    <p style="margin:16px 0 0;color:#94a3b8;font-size:12px;text-align:center">Kratos Sustainability CRM</p>
   </div>`;
 }
 

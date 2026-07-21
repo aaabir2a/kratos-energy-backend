@@ -43,6 +43,7 @@ export async function sendMail(mail: Mail): Promise<boolean> {
     const info = await getTransport().sendMail({
       from: from(),
       to: recipients.join(', '),
+      ...(env.MAIL_REPLY_TO ? { replyTo: env.MAIL_REPLY_TO } : {}),
       subject: mail.subject,
       html: mail.html,
       text: mail.text ?? mail.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
