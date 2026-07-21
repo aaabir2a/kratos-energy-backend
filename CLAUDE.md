@@ -4,7 +4,9 @@ Lead-management CRM for Kratos Energy (Australian solar). Core loop: capture lea
 
 ## Status
 
-Phases 1–6 built + verified: auth/RBAC(4 roles: admin/manager/marketing/sales), leads+pipeline+round-robin, source attribution (first/last touch, UTM/gclid/fbclid), deals (convert/close, snapshot-priced items), landing pages + dynamic form engine (versioned `fields_schema`, server-validated), catalog (PDF schema: products/packages/package_products). Remaining: P7 notifications, P8 analytics, P9 hardening.
+Phases 1–6 built + verified: auth/RBAC(4 roles: admin/manager/marketing/sales), leads+pipeline+round-robin, source attribution (first/last touch, UTM/gclid/fbclid), deals (convert/close, snapshot-priced items), landing pages + dynamic form engine (versioned `fields_schema`, server-validated), catalog (PDF schema: products/packages/package_products). Remaining: P8 analytics, P9 hardening.
+
+**P7 Notifications live** (email + in-app, no SMS): `notifications` table (in-app feed) + `app_settings` (JSON kv, first use `notify.adminEmails`). Events fire-and-forget from services — lead.created (→ managers/admins in-app + shared inbox email), lead.assigned (→ rep), deal.won/lost (→ owner+managers). Email via nodemailer SMTP (`SMTP_*`, `MAIL_FROM`, `APP_BASE_URL` for deep links, `NOTIFY_ADMIN_EMAILS` fallback) — empty SMTP = email skipped, in-app still works. API `/notifications` (feed/unread-count/read-all/:id/read) + `/notifications/settings` (settings.read/write). UI: top-bar bell (30s poll) + Administration → Notifications (shared recipients). Staff notified at their own user email; shared recipients editable in-app.
 
 **Hero image system live**: `POST /media/hero` (multipart, variant DESKTOP 16:9 min 2400×1350 / MOBILE 3:4 min 1080×1440), originals + WebP renditions in MinIO (creds in backend/.env, bucket kratos-uploads, hero/* public-read), public `GET /public/hero-images` → `{desktop:[],mobile:[]}`. UI: Website Settings → Image Uploads (full-res cropper on aspect mismatch). sharp needs Windows paths, not Git Bash /tmp.
 

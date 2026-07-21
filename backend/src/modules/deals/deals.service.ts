@@ -3,6 +3,11 @@ import { prisma } from '../../core/database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { buildMeta } from '../../shared/utils/pagination';
 import type { AuthContext } from '../leads/leads.scope';
+import { notificationService } from '../notifications/notification.service';
+
+function leadName(deal: { lead?: { firstName: string; lastName: string } | null }): string | undefined {
+  return deal.lead ? `${deal.lead.firstName} ${deal.lead.lastName}`.trim() : undefined;
+}
 
 const dealInclude = {
   stage: true,
@@ -256,6 +261,9 @@ export const dealsService = {
     await prisma.leadActivity.create({
       data: { leadId: deal.leadId, userId: auth.userId, type: 'SYSTEM', subject: 'Deal won', body: `D-${deal.dealNumber} closed won ($${Number(deal.value).toLocaleString()}).` },
     });
+    void notificationService
+      .onDealClosed({ id: deal.id, dealNumber: deal.dealNumber, value: Number(deal.value), ownerId: deal.ownerId, officeId: deal.officeId, leadName: leadName(deal) }, 'won')
+      .catch(() => undefined);
     return deal;
   },
 
@@ -267,6 +275,9 @@ export const dealsService = {
     await prisma.leadActivity.create({
       data: { leadId: deal.leadId, userId: auth.userId, type: 'SYSTEM', subject: 'Deal lost', body: lostReason },
     });
+    void notificationService
+      .onDealClosed({ id: updated.id, dealNumber: updated.dealNumber, value: Number(updated.value), ownerId: updated.ownerId, officeId: updated.officeId, leadName: leadName(updated) }, 'lost', lostReason)
+      .catch(() => undefined);
     return updated;
   },
 

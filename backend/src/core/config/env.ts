@@ -33,6 +33,22 @@ const envSchema = z.object({
   // blocked as mixed content on an HTTPS page. Empty => derive from endpoint.
   MINIO_PUBLIC_BASE_URL: z.string().default(''),
 
+  // Email notifications (Phase 7). Empty SMTP_HOST/USER => email disabled (in-app
+  // notifications still work). Gmail: smtp.gmail.com:587 + a 16-char app password.
+  SMTP_HOST: z.string().default(''),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_SECURE: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'), // true for port 465
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  MAIL_FROM: z.string().default(''), // e.g. "Kratos Sustainability <kratossenergy@gmail.com>"
+  // CRM base URL used to build deep links in emails, e.g. https://crm.kratos-energy.com
+  APP_BASE_URL: z.string().default(''),
+  // Fallback shared recipients for admin notifications (comma-separated) until set in the UI.
+  NOTIFY_ADMIN_EMAILS: z.string().default(''),
+
   // Chatbot platform (CRM_DEVELOPER_GUIDE.md). Key empty => integration disabled.
   CHATBOT_API_BASE: z.string().url().default('https://api.ambrosianuk.com'),
   CHATBOT_CRM_KEY: z.string().default(''),

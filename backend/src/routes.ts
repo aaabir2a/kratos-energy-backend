@@ -12,6 +12,7 @@ import { landingPagesRouter, formsRouter, publicPagesRouter, publicFormRouter } 
 import { productsRouter, packagesRouter, publicCatalogRouter } from './modules/catalog/catalog.routes';
 import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.routes';
 import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
+import { notificationsRouter } from './modules/notifications/notification.routes';
 
 export const apiRouter = Router();
 
@@ -48,5 +49,6 @@ apiRouter.use('/packages', packagesRouter);
 apiRouter.use('/public', publicCatalogRouter); // public catalog for the main website, no auth
 apiRouter.use('/chatbot', chatbotWebhookRouter); // HMAC-verified platform webhook (no session auth)
 apiRouter.use('/chatbot', chatbotRouter); // staff chat-inbox API
+apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/media', mediaRouter);
 apiRouter.use('/public', publicMediaRouter); // hero images for the main website

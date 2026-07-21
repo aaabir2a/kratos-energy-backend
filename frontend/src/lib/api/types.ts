@@ -242,6 +242,17 @@ export interface DealStats {
 // ── Phase 5: Landing pages & forms ────────────────────
 export type PageStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entityType: 'lead' | 'deal' | null;
+  entityId: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export type FieldMapTarget = 'firstName' | 'lastName' | 'email' | 'phone' | 'suburb' | 'state' | 'postcode';
 
 export interface FormField {

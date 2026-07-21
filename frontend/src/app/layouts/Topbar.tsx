@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
 import { useLogout } from '@/hooks/useAuth';
 import { initials } from '@/lib/utils';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Administrator',
@@ -39,6 +40,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-2">
+        <NotificationBell />
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
           {theme === 'light' ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
         </Button>

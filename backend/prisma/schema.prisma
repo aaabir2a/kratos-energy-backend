@@ -127,6 +127,9 @@ model User {
   // Phase 5 — landing pages
   createdPages LandingPage[] @relation("PageCreatedBy")
 
+  // Phase 7 — notifications (in-app feed)
+  notifications Notification[]
+
   @@index([officeId])
   @@index([roleId])
   @@index([isActive])
@@ -854,4 +857,35 @@ model HeroImage {
 
   @@index([variant, isActive, sortOrder])
   @@map("hero_images")
+}
+
+// ═════════════════════════════════════════════════════════════
+// PHASE 7 — Notifications (in-app feed; email dispatched separately).
+// ═════════════════════════════════════════════════════════════
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  type       String // lead.assigned | lead.created | deal.won | deal.lost | ...
+  title      String
+  body       String?
+  entityType String?   @map("entity_type") // lead | deal
+  entityId   String?   @map("entity_id") @db.Uuid
+  readAt     DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// Generic key/value app settings (JSON). First use: notification recipients.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_settings")
 }

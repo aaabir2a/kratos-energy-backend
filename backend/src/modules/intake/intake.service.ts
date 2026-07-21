@@ -3,6 +3,7 @@ import { prisma } from '../../core/database/prisma';
 import { logger } from '../../core/logger/logger';
 import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
+import { notificationService } from '../notifications/notification.service';
 import { parseFieldsSchema, validateSubmission, splitMappedFields, type FieldDescriptor } from '../marketing/formEngine';
 import type {
   AttributionInput,
@@ -226,6 +227,25 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
     );
   }
   await prisma.$transaction(tx);
+
+  // Notifications — fire-and-forget, never block or fail the capture.
+  void notificationService
+    .onLeadCreated({
+      id: lead.id,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      email: lead.email,
+      phone: lead.phone,
+      suburb: lead.suburb,
+      officeId: lead.officeId,
+      channel: args.channel,
+    })
+    .catch(() => undefined);
+  if (assignedToId) {
+    void notificationService
+      .onLeadAssigned({ id: lead.id, firstName: lead.firstName, lastName: lead.lastName, suburb: lead.suburb }, assignedToId)
+      .catch(() => undefined);
+  }
 
   return {
     leadId: lead.id,

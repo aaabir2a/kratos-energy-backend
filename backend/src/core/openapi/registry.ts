@@ -48,6 +48,7 @@ import {
   updateFormSchema,
   upsertGlobalFormSchema,
 } from '../../modules/marketing/marketing.schema';
+import { settingsSchema as notificationSettingsSchema } from '../../modules/notifications/notification.schema';
 // Catalog (Phase 6)
 import {
   createProductSchema,
@@ -248,6 +249,14 @@ path({ method: 'post', path: '/media/hero', tag: 'Media', summary: 'Upload hero 
 path({ method: 'delete', path: '/media/hero/{id}', tag: 'Media', summary: 'Delete hero image (removes from MinIO)', params: idParam });
 path({ method: 'post', path: '/media/catalog', tag: 'Media', summary: 'Upload a product/package image (multipart: file; cropped to 400×400 WebP; returns { url } to save on imageUrl)' });
 path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
+
+// ═══════════════ Notifications (Phase 7) ═══════════════
+path({ method: 'get', path: '/notifications', tag: 'Notifications', summary: 'My in-app feed (?unread=true, paginated; meta.unread = unread count)' });
+path({ method: 'get', path: '/notifications/unread-count', tag: 'Notifications', summary: 'My unread count' });
+path({ method: 'post', path: '/notifications/read-all', tag: 'Notifications', summary: 'Mark all my notifications read' });
+path({ method: 'patch', path: '/notifications/{id}/read', tag: 'Notifications', summary: 'Mark one notification read', params: idParam });
+path({ method: 'get', path: '/notifications/settings', tag: 'Notifications', summary: 'Shared admin-notification recipients' });
+path({ method: 'put', path: '/notifications/settings', tag: 'Notifications', summary: 'Set shared admin-notification recipients', body: notificationSettingsSchema });
 
 // ═══════════════ Campaigns (Phase 3) ═══════════════
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });

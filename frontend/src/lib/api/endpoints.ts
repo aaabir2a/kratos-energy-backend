@@ -27,6 +27,7 @@ import type {
   Role,
   SourceReportRow,
   User,
+  Notification,
 } from './types';
 
 // ── Auth ──────────────────────────────────────────────
@@ -232,4 +233,18 @@ export const officesApi = {
   update: (id: string, body: Record<string, unknown>) =>
     api.patch<ApiSuccess<Office>>(`/offices/${id}`, body).then((r) => r.data.data),
   remove: (id: string) => api.delete(`/offices/${id}`),
+};
+
+// ── Notifications (Phase 7) ───────────────────────────
+export const notificationsApi = {
+  list: (params?: { unread?: boolean; page?: number; limit?: number }) =>
+    api
+      .get<ApiSuccess<Notification[]> & { meta: { unread: number; total: number } }>('/notifications', { params })
+      .then((r) => r.data),
+  unreadCount: () => api.get<ApiSuccess<{ unread: number }>>('/notifications/unread-count').then((r) => r.data.data.unread),
+  markRead: (id: string) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.post('/notifications/read-all'),
+  getSettings: () => api.get<ApiSuccess<{ adminEmails: string[] }>>('/notifications/settings').then((r) => r.data.data),
+  saveSettings: (adminEmails: string[]) =>
+    api.put<ApiSuccess<{ adminEmails: string[] }>>('/notifications/settings', { adminEmails }).then((r) => r.data.data),
 };

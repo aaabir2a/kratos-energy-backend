@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Images,
   FormInput,
+  BellRing,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -57,6 +58,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/users', label: 'Users', icon: Users, perm: 'users.read' },
       { to: '/roles', label: 'Roles & Permissions', icon: ShieldCheck, perm: 'roles.read' },
       { to: '/offices', label: 'Offices', icon: Building2, perm: 'offices.read' },
+      { to: '/settings/notifications', label: 'Notifications', icon: BellRing, perm: 'settings.read' },
     ],
   },
 ];
