@@ -28,6 +28,7 @@ import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate, cn } from '@/lib/utils';
 import { StageBadge, StatusBadge, PriorityDot, fullName } from './leadHelpers';
+import { isBuildLead, BuildBadge } from './buildConfig';
 
 const AU_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'] as const;
 
@@ -270,6 +271,7 @@ export function LeadsPage() {
                 <TableHead>Priority</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Assigned</TableHead>
+                <TableHead>Origin</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
             </TableHeader>
@@ -309,6 +311,7 @@ export function LeadsPage() {
                       <span className="text-xs text-muted-foreground">Unassigned</span>
                     )}
                   </TableCell>
+                  <TableCell>{isBuildLead(l.customFormResponses) ? <BuildBadge /> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(l.createdAt)}</TableCell>
                 </TableRow>
               ))}

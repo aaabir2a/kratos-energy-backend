@@ -112,6 +112,7 @@ export interface LeadListItem {
   estimatedSystemSize: string | null;
   nextFollowUpAt: string | null;
   createdAt: string;
+  customFormResponses: Record<string, unknown> | null;
   stage: { id: string; name: string; slug: string; color: string | null } | null;
   source: { id: string; name: string; type: string } | null;
   assignedTo: { id: string; firstName: string; lastName: string } | null;

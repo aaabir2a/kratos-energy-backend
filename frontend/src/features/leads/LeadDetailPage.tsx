@@ -40,6 +40,7 @@ import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate } from '@/lib/utils';
 import { StatusBadge, PriorityDot, StageBadge, fullName } from './leadHelpers';
+import { isBuildLead, BuildBadge, BuildConfigCard } from './buildConfig';
 import type { LeadActivity } from '@/lib/api/types';
 
 const ACTIVITY_ICON: Record<LeadActivity['type'], React.ElementType> = {
@@ -222,6 +223,7 @@ export function LeadDetailPage() {
               <StatusBadge status={l.status} />
               <StageBadge stage={l.stage} />
               <PriorityDot priority={l.priority} />
+              {isBuildLead(l.customFormResponses) && <BuildBadge />}
             </div>
           </div>
         </div>
@@ -344,6 +346,9 @@ export function LeadDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: details + workflow */}
         <div className="space-y-6">
+          {isBuildLead(l.customFormResponses) && l.customFormResponses && (
+            <BuildConfigCard custom={l.customFormResponses} />
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Contact</CardTitle>

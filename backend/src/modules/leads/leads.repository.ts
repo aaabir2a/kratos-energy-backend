@@ -15,6 +15,7 @@ export const leadListSelect = {
   estimatedSystemSize: true,
   nextFollowUpAt: true,
   createdAt: true,
+  customFormResponses: true, // origin markers (lead_source/build_*) for list badges
   stage: { select: { id: true, name: true, slug: true, color: true } },
   source: { select: { id: true, name: true, type: true } },
   assignedTo: { select: { id: true, firstName: true, lastName: true } },

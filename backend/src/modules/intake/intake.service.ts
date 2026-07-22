@@ -321,6 +321,17 @@ export const intakeService = {
     const { contact: mapped, custom } = splitMappedFields(fields, customFields);
     customFields = custom;
 
+    // Structured extras that aren't part of the form schema get dropped by the
+    // validator — pass through origin markers + the build-configurator payload
+    // (build_*) so the CRM can render them. Primitives only, strings capped.
+    const PASSTHROUGH_KEYS = new Set(['lead_source', 'source_page']);
+    for (const [key, value] of Object.entries(input.customFields ?? {})) {
+      if (!PASSTHROUGH_KEYS.has(key) && !key.startsWith('build_')) continue;
+      if (value === undefined || value === null || value === '') continue;
+      if (typeof value === 'string') customFields[key] = value.slice(0, 500);
+      else if (typeof value === 'number' || typeof value === 'boolean') customFields[key] = value;
+    }
+
     const firstName = (mapped.firstName ?? input.firstName)?.trim();
     const email = mapped.email ?? (input.email || undefined);
     const phone = mapped.phone ?? input.phone;
