@@ -144,6 +144,22 @@ async function main() {
   }
   console.log(`  ✔ ${dealStages.length} deal stages`);
 
+  // 8. Blog types
+  const blogTypes = [
+    { name: 'Article', slug: 'article', description: 'Long-form editorial content' },
+    { name: 'FAQ', slug: 'faq', description: 'Frequently asked questions' },
+    { name: 'General Blog', slug: 'general-blog', description: 'General purpose blog posts' },
+    { name: 'How-To', slug: 'how-to', description: 'Step-by-step guides and instructions' },
+  ];
+  for (const bt of blogTypes) {
+    await prisma.blogType.upsert({
+      where: { slug: bt.slug },
+      update: { name: bt.name, description: bt.description },
+      create: bt,
+    });
+  }
+  console.log(`  ✔ ${blogTypes.length} blog types`);
+
   console.log('✅ Seed complete');
 }
 

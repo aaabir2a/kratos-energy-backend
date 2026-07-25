@@ -22,6 +22,8 @@ export const PERMISSIONS = [
   'sources.read',
   // catalog (Phase 6)
   'catalog.read', 'catalog.write',
+  // blogs (Blog Module)
+  'blogs.read', 'blogs.write',
   // analytics (Phase 8)
   'analytics.read',
 ] as const;
@@ -68,6 +70,7 @@ export const ROLE_DEFINITIONS: Record<
       'sources.read', 'catalog.read',
       'leads.read', 'leads.export',
       'analytics.read',
+      'blogs.read', 'blogs.write',
     ],
   },
   sales: {

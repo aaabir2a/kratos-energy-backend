@@ -21,6 +21,10 @@ import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
 import { ChatInboxPage } from '@/features/chat/ChatInboxPage';
 import { HeroImagesPage } from '@/features/media/HeroImagesPage';
+import { BlogsPage } from '@/features/blogs/BlogsPage';
+import { BlogPostEditorPage } from '@/features/blogs/BlogPostEditorPage';
+import { BlogCategoriesPage } from '@/features/blogs/BlogCategoriesPage';
+import { BlogTypesPage } from '@/features/blogs/BlogTypesPage';
 import { ForbiddenPage, NotFoundPage } from '@/features/misc/ErrorPages';
 
 export const router = createBrowserRouter([
@@ -78,6 +82,16 @@ export const router = createBrowserRouter([
           {
             element: <RequirePermission perm="landing_pages.read" />,
             children: [{ path: '/website/images', element: <HeroImagesPage /> }],
+          },
+          {
+            element: <RequirePermission perm="blogs.read" />,
+            children: [
+              { path: '/blogs', element: <BlogsPage /> },
+              { path: '/blogs/new', element: <BlogPostEditorPage /> },
+              { path: '/blogs/:id/edit', element: <BlogPostEditorPage /> },
+              { path: '/blogs/categories', element: <BlogCategoriesPage /> },
+              { path: '/blogs/types', element: <BlogTypesPage /> },
+            ],
           },
           {
             element: <RequirePermission perm="forms.read" />,

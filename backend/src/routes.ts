@@ -13,6 +13,7 @@ import { productsRouter, packagesRouter, publicCatalogRouter } from './modules/c
 import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.routes';
 import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
 import { notificationsRouter } from './modules/notifications/notification.routes';
+import { blogsRouter, publicBlogsRouter } from './modules/blogs/blogs.routes';
 
 export const apiRouter = Router();
 
@@ -52,3 +53,6 @@ apiRouter.use('/chatbot', chatbotRouter); // staff chat-inbox API
 apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/media', mediaRouter);
 apiRouter.use('/public', publicMediaRouter); // hero images for the main website
+apiRouter.use('/blogs', blogsRouter);
+apiRouter.use('/public', publicBlogsRouter);
+

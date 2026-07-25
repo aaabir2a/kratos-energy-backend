@@ -889,3 +889,76 @@ model AppSetting {
 
   @@map("app_settings")
 }
+
+// ═══════════════════════════════════════════════════════════
+// BLOG MODULE — CMS-managed blog posts
+// ═══════════════════════════════════════════════════════════
+
+model BlogCategory {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  posts BlogPost[]
+
+  @@map("blog_categories")
+}
+
+model BlogType {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique     // article | faq | general-blog | how-to
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  posts BlogPost[]
+
+  @@map("blog_types")
+}
+
+enum BlogStatus {
+  draft
+  published
+}
+
+model BlogPost {
+  id              Int           @id @default(autoincrement())
+  title           String
+  slug            String        @unique
+  excerpt         String?
+  author          String?
+  featuredImage   String?       @map("featured_image")
+  readMins        Int?          @map("read_mins")
+  tags            String[]      @default([])
+  blocks          Json          @default("[]")
+  status          BlogStatus    @default(draft)
+
+  // Taxonomy
+  categoryId      Int?          @map("category_id")
+  typeId          Int?          @map("type_id")
+
+  // SEO
+  metaTitle       String?       @map("meta_title")
+  metaDescription String?       @map("meta_description")
+  canonicalUrl    String?       @map("canonical_url")
+
+  // Timestamps
+  publishedAt     DateTime?     @map("published_at") @db.Timestamptz(6)
+  createdById     String?       @map("created_by") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type     BlogType?     @relation(fields: [typeId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+  @@index([slug])
+  @@index([categoryId])
+  @@index([typeId])
+  @@map("blog_posts")
+}
+

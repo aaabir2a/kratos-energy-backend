@@ -15,6 +15,9 @@ import {
   Images,
   FormInput,
   BellRing,
+  BookOpen,
+  Tags,
+  LayoutList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -50,6 +53,14 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/website/packages', label: 'Packages', icon: Boxes, perm: 'catalog.read' },
       { to: '/website/images', label: 'Image Uploads', icon: Images, perm: 'landing_pages.read' },
       { to: '/website/lead-form', label: 'Lead Form', icon: FormInput, perm: 'forms.read' },
+    ],
+  },
+  {
+    section: 'Blog CMS',
+    items: [
+      { to: '/blogs', label: 'Posts', icon: BookOpen, perm: 'blogs.read' },
+      { to: '/blogs/categories', label: 'Categories', icon: Tags, perm: 'blogs.write' },
+      { to: '/blogs/types', label: 'Blog Types', icon: LayoutList, perm: 'blogs.write' },
     ],
   },
   {
