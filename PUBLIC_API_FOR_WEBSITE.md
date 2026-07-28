@@ -326,6 +326,60 @@ rather than creating a duplicate.
 
 ---
 
+## 5. Projects (completed installations)
+
+Showcase of finished jobs, managed in the CRM under **Website Settings → Projects**.
+Only **published** projects are returned. Response is cached 5 minutes.
+
+```
+GET /public/projects
+```
+
+**Query params:** `page`, `limit`.
+
+**Send:** nothing.
+
+**Response:**
+
+```jsonc
+{
+  "success": true,
+  "data": [
+    {
+      "id": "b3081497-bee6-4594-9eb4-7774191c6fb4",
+      "title": "10kW rooftop solar — Wollongong",
+      "description": "22 panels + Goodwe hybrid inverter and 9.6kWh battery.",
+      "images": [                                  // ordered; [0] is the cover
+        "https://api.kratos-energy.com/kratos-uploads/projects/3942eb6f-….webp",
+        "https://api.kratos-energy.com/kratos-uploads/projects/c954ec5a-….webp"
+      ],
+      "location": "Wollongong, NSW",
+      "projectDate": "2026-05-14T00:00:00.000Z",   // ISO; date-only, treat as a date
+      "createdAt": "2026-07-28T17:16:19.462Z"
+    }
+  ],
+  "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+}
+```
+
+- `images` — **always an array** (empty `[]` if none). Public MinIO URLs, WebP,
+  max 1600px wide, original aspect ratio preserved. Render `images[0]` as the cover.
+- `description`, `location`, `projectDate` may be `null`.
+- Ordering: CRM `sortOrder` first, then newest `projectDate`, then newest created.
+
+### Single project
+
+```
+GET /public/projects/:id
+```
+
+**Send:** nothing. `:id` is the UUID from the list.
+
+**Response:** `{ "success": true, "data": { /* one project, same shape */ } }`
+404 if the id is unknown or the project is unpublished.
+
+---
+
 ## Quick reference
 
 | Method | Path | Auth | Purpose |
@@ -336,3 +390,5 @@ rather than creating a duplicate.
 | GET | `/public/hero-images` | none | Hero images `{ desktop[], mobile[] }` |
 | GET | `/public/lead-form` | none | Global form schema (or `null`) |
 | POST | `/leads/submit` | none | Submit form → creates a lead |
+| GET | `/public/projects` | none | Published projects with `images[]` (paginated) |
+| GET | `/public/projects/:id` | none | One published project |

@@ -14,6 +14,7 @@ import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.r
 import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
 import { notificationsRouter } from './modules/notifications/notification.routes';
 import { blogsRouter, publicBlogsRouter } from './modules/blogs/blogs.routes';
+import { projectsRouter, publicProjectsRouter } from './modules/projects/projects.routes';
 
 export const apiRouter = Router();
 
@@ -55,4 +56,6 @@ apiRouter.use('/media', mediaRouter);
 apiRouter.use('/public', publicMediaRouter); // hero images for the main website
 apiRouter.use('/blogs', blogsRouter);
 apiRouter.use('/public', publicBlogsRouter);
+apiRouter.use('/projects', projectsRouter);
+apiRouter.use('/public', publicProjectsRouter); // project showcase for the main website, no auth
 

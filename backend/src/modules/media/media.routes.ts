@@ -144,6 +144,31 @@ mediaRouter.post(
   }),
 );
 
+// Upload one project photo. Keeps the original aspect ratio (unlike the square
+// catalog crop) — downscaled to max 1600px wide and encoded as WebP. Returns the
+// public URL to append to a project's images array.
+mediaRouter.post(
+  '/project',
+  requirePermission('projects.write'),
+  upload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!minioConfigured()) throw AppError.badRequest('MinIO is not configured in the backend .env');
+    if (!req.file) throw AppError.badRequest('No file uploaded (multipart field "file")');
+
+    const key = `projects/${randomUUID()}.webp`;
+    const webpBuf = await sharp(req.file.buffer)
+      .rotate()
+      .resize({ width: 1600, withoutEnlargement: true })
+      .webp({ quality: 88, effort: 5 })
+      .toBuffer();
+    const meta = await sharp(webpBuf).metadata();
+    await putObject(key, webpBuf, 'image/webp');
+
+    await audit({ userId: req.auth?.userId, action: 'project_image.upload', entityType: 'project_image', entityId: key, ip: req.ip });
+    created(res, { url: publicUrl(key), width: meta.width, height: meta.height });
+  }),
+);
+
 // ── PUBLIC: consumed by www.kratos-energy.com ──
 export const publicMediaRouter = Router();
 

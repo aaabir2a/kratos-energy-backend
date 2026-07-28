@@ -49,6 +49,7 @@ import {
   upsertGlobalFormSchema,
 } from '../../modules/marketing/marketing.schema';
 import { settingsSchema as notificationSettingsSchema } from '../../modules/notifications/notification.schema';
+import { createProjectSchema, updateProjectSchema } from '../../modules/projects/projects.schema';
 // Catalog (Phase 6)
 import {
   createProductSchema,
@@ -248,6 +249,16 @@ path({ method: 'get', path: '/media/hero', tag: 'Media', summary: 'List hero ima
 path({ method: 'post', path: '/media/hero', tag: 'Media', summary: 'Upload hero image (multipart: file + variant DESKTOP|MOBILE; aspect + min-size validated; original kept, WebP rendition generated)' });
 path({ method: 'delete', path: '/media/hero/{id}', tag: 'Media', summary: 'Delete hero image (removes from MinIO)', params: idParam });
 path({ method: 'post', path: '/media/catalog', tag: 'Media', summary: 'Upload a product/package image (multipart: file; cropped to 400×400 WebP; returns { url } to save on imageUrl)' });
+path({ method: 'post', path: '/media/project', tag: 'Media', summary: 'Upload a project photo (multipart: file; aspect kept, max 1600px wide, WebP; returns { url } to append to images[])' });
+
+// ═══════════════ Projects (website showcase) ═══════════════
+path({ method: 'get', path: '/projects', tag: 'Projects', summary: 'List projects (?search, ?published=true|false, paginated)' });
+path({ method: 'post', path: '/projects', tag: 'Projects', summary: 'Create project', body: createProjectSchema, created: true });
+path({ method: 'get', path: '/projects/{id}', tag: 'Projects', summary: 'Get project', params: idParam });
+path({ method: 'patch', path: '/projects/{id}', tag: 'Projects', summary: 'Update project ("" or null clears a field)', params: idParam, body: updateProjectSchema });
+path({ method: 'delete', path: '/projects/{id}', tag: 'Projects', summary: 'Archive project (soft delete, unpublishes)', params: idParam });
+path({ method: 'get', path: '/public/projects', tag: 'Public Website', summary: 'PUBLIC: published projects with images[] for the main website (paginated)', auth: false });
+path({ method: 'get', path: '/public/projects/{id}', tag: 'Public Website', summary: 'PUBLIC: one published project', auth: false, params: idParam });
 path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
 
 // ═══════════════ Notifications (Phase 7) ═══════════════

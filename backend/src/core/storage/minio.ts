@@ -39,7 +39,11 @@ export async function ensureBucket(): Promise<void> {
         Effect: 'Allow',
         Principal: { AWS: ['*'] },
         Action: ['s3:GetObject'],
-        Resource: [`arn:aws:s3:::${bucket}/hero/*`, `arn:aws:s3:::${bucket}/catalog/*`],
+        Resource: [
+          `arn:aws:s3:::${bucket}/hero/*`,
+          `arn:aws:s3:::${bucket}/catalog/*`,
+          `arn:aws:s3:::${bucket}/projects/*`,
+        ],
       },
     ],
   };

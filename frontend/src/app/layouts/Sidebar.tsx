@@ -18,6 +18,7 @@ import {
   BookOpen,
   Tags,
   LayoutList,
+  Hammer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -53,6 +54,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/website/packages', label: 'Packages', icon: Boxes, perm: 'catalog.read' },
       { to: '/website/images', label: 'Image Uploads', icon: Images, perm: 'landing_pages.read' },
       { to: '/website/lead-form', label: 'Lead Form', icon: FormInput, perm: 'forms.read' },
+      { to: '/website/projects', label: 'Projects', icon: Hammer, perm: 'projects.read' },
     ],
   },
   {

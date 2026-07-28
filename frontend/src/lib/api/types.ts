@@ -387,3 +387,16 @@ export interface CampaignRow {
   costPerLead: number | null;
   isActive: boolean;
 }
+
+// ── Projects (website showcase) ───────────────────────
+export interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  images: string[];
+  location: string | null;
+  projectDate: string | null;
+  isPublished: boolean;
+  sortOrder: number;
+  createdAt: string;
+}

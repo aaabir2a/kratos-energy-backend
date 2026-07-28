@@ -962,3 +962,26 @@ model BlogPost {
   @@map("blog_posts")
 }
 
+
+// ═════════════════════════════════════════════════════════════
+// PROJECTS — completed installations showcased on the main
+// website. Multiple images per project (MinIO, projects/*).
+// ═════════════════════════════════════════════════════════════
+
+model Project {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  images      String[]  @default([]) // public MinIO URLs, ordered
+  location    String?
+  projectDate DateTime? @map("project_date") @db.Date
+  isPublished Boolean   @default(true) @map("is_published")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdById String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([isPublished, sortOrder])
+  @@map("projects")
+}

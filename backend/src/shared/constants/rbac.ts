@@ -22,6 +22,8 @@ export const PERMISSIONS = [
   'sources.read',
   // catalog (Phase 6)
   'catalog.read', 'catalog.write',
+  // projects (website showcase)
+  'projects.read', 'projects.write',
   // blogs (Blog Module)
   'blogs.read', 'blogs.write',
   // analytics (Phase 8)
@@ -58,6 +60,7 @@ export const ROLE_DEFINITIONS: Record<
       'pipeline.read', 'pipeline.write', 'activities.read', 'activities.write',
       'deals.read', 'deals.write', 'deals.close', 'deals.approve',
       'catalog.read', 'sources.read', 'analytics.read',
+      'projects.read',
     ],
   },
   marketing: {
@@ -71,6 +74,7 @@ export const ROLE_DEFINITIONS: Record<
       'leads.read', 'leads.export',
       'analytics.read',
       'blogs.read', 'blogs.write',
+      'projects.read', 'projects.write',
     ],
   },
   sales: {

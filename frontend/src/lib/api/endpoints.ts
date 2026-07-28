@@ -28,6 +28,7 @@ import type {
   SourceReportRow,
   User,
   Notification,
+  Project,
 } from './types';
 
 // ── Auth ──────────────────────────────────────────────
@@ -247,4 +248,26 @@ export const notificationsApi = {
   getSettings: () => api.get<ApiSuccess<{ adminEmails: string[] }>>('/notifications/settings').then((r) => r.data.data),
   saveSettings: (adminEmails: string[]) =>
     api.put<ApiSuccess<{ adminEmails: string[] }>>('/notifications/settings', { adminEmails }).then((r) => r.data.data),
+};
+
+// ── Projects (website showcase) ───────────────────────
+export const projectsApi = {
+  list: (params?: { search?: string; published?: boolean; page?: number; limit?: number }) =>
+    api.get<ApiSuccess<Project[]>>('/projects', { params }).then((r) => r.data),
+  get: (id: string) => api.get<ApiSuccess<Project>>(`/projects/${id}`).then((r) => r.data.data),
+  create: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<Project>>('/projects', body).then((r) => r.data.data),
+  update: (id: string, body: Record<string, unknown>) =>
+    api.patch<ApiSuccess<Project>>(`/projects/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/projects/${id}`),
+  // Upload one photo -> public URL to append to images[].
+  uploadImage: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api
+      .post<ApiSuccess<{ url: string; width: number; height: number }>>('/media/project', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data.data);
+  },
 };
