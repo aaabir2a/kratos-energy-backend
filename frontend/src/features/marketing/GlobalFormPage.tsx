@@ -41,6 +41,10 @@ export function GlobalFormPage() {
   const [formTitle, setFormTitle] = useState('Get in touch');
   const [submitText, setSubmitText] = useState('Send enquiry');
   const [fields, setFields] = useState<FormField[]>([]);
+  // Raw text of the options input, per field index. Kept separate from the
+  // parsed options array so a just-typed "," (which parses to nothing) isn't
+  // wiped from the input on re-render.
+  const [optionsText, setOptionsText] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const form = globalForm.data;
@@ -48,6 +52,7 @@ export function GlobalFormPage() {
     setFormTitle(form.formTitle);
     setSubmitText(form.submitButtonText);
     setFields(form.fieldsSchema);
+    setOptionsText({});
   }, [globalForm.data]);
 
   const save = useMutation({
@@ -78,6 +83,21 @@ export function GlobalFormPage() {
   }
   function removeField(i: number) {
     setFields((prev) => prev.filter((_, idx) => idx !== i));
+    // Options drafts are keyed by index — shift the ones after the removed row.
+    setOptionsText((prev) => {
+      const next: Record<number, string> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const idx = Number(k);
+        if (idx < i) next[idx] = v;
+        else if (idx > i) next[idx - 1] = v;
+      }
+      return next;
+    });
+  }
+
+  function setOptions(i: number, raw: string) {
+    setOptionsText((prev) => ({ ...prev, [i]: raw }));
+    updateField(i, { options: raw.split(',').map((s) => s.trim()).filter(Boolean) });
   }
 
   if (globalForm.isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
@@ -189,8 +209,8 @@ export function GlobalFormPage() {
                     <Input
                       className="min-w-[180px] flex-1 text-xs"
                       placeholder="Options, comma separated"
-                      value={f.options?.join(', ') ?? ''}
-                      onChange={(e) => updateField(i, { options: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+                      value={optionsText[i] ?? f.options?.join(', ') ?? ''}
+                      onChange={(e) => setOptions(i, e.target.value)}
                       disabled={!canForm}
                     />
                   )}

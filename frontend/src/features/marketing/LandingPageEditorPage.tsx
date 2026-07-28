@@ -36,6 +36,9 @@ export function LandingPageEditorPage() {
   // Form builder draft state
   const [formTitle, setFormTitle] = useState('Get your free quote');
   const [fields, setFields] = useState<FormField[]>([]);
+  // Raw options text per field index — see GlobalFormPage: keeps a just-typed
+  // "," visible instead of it being stripped by the parse-and-rejoin round trip.
+  const [optionsText, setOptionsText] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (!page.data) return;
@@ -47,6 +50,7 @@ export function LandingPageEditorPage() {
     if (form) {
       setFormTitle(form.formTitle);
       setFields(form.fieldsSchema);
+      setOptionsText({});
     }
   }, [page.data]);
 
@@ -109,6 +113,20 @@ export function LandingPageEditorPage() {
   }
   function removeField(i: number) {
     setFields((prev) => prev.filter((_, idx) => idx !== i));
+    setOptionsText((prev) => {
+      const next: Record<number, string> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const idx = Number(k);
+        if (idx < i) next[idx] = v;
+        else if (idx > i) next[idx - 1] = v;
+      }
+      return next;
+    });
+  }
+
+  function setOptions(i: number, raw: string) {
+    setOptionsText((prev) => ({ ...prev, [i]: raw }));
+    updateField(i, { options: raw.split(',').map((s) => s.trim()).filter(Boolean) });
   }
 
   if (page.isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
@@ -239,8 +257,8 @@ export function LandingPageEditorPage() {
                       <Input
                         className="min-w-[180px] flex-1 text-xs"
                         placeholder="Options, comma separated"
-                        value={f.options?.join(', ') ?? ''}
-                        onChange={(e) => updateField(i, { options: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+                        value={optionsText[i] ?? f.options?.join(', ') ?? ''}
+                        onChange={(e) => setOptions(i, e.target.value)}
                         disabled={!canForm}
                       />
                     )}
