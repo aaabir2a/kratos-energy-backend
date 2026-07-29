@@ -39,21 +39,24 @@ export default function CardBlock({ content = {}, isEditor = false, onUpdate }: 
 
   if (!isEditor) {
     return (
-      <div className="my-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="my-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {items.map((item, idx) => (
-          <div key={idx} className="border border-ash-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col">
+          <div
+            key={idx}
+            className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm flex flex-col hover:shadow-md hover:border-[#8bc34a]/40 transition-all group"
+          >
             {item.imageUrl && (
-              <div className="h-44 relative bg-muted/10">
-                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+              <div className="h-48 relative bg-gray-50 overflow-hidden">
+                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
               </div>
             )}
-            <div className="p-5 flex-1 flex flex-col">
-              <h4 className="font-display font-bold text-navy-800 text-[18px] mb-2">{item.title}</h4>
-              <p className="font-body text-ash-700 text-[14px] leading-relaxed flex-1">{item.description}</p>
+            <div className="p-6 flex-1 flex flex-col">
+              <h4 className="font-display font-bold text-gray-900 text-[17px] mb-2 leading-snug group-hover:text-[#8bc34a] transition-colors">{item.title}</h4>
+              <p className="font-body text-gray-600 text-[14px] leading-relaxed flex-1">{item.description}</p>
               {item.link && (
                 <a
                   href={item.link}
-                  className="mt-4 inline-block font-display text-[13.5px] font-bold text-forest-700 hover:underline"
+                  className="mt-4 inline-flex items-center gap-1.5 font-display text-[14px] font-bold text-[#8bc34a] hover:underline"
                 >
                   Learn more →
                 </a>

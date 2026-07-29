@@ -41,17 +41,18 @@ export default function TabBlock({ content = {}, isEditor = false, onUpdate }: T
 
   if (!isEditor) {
     return (
-      <div className="my-6 border border-ash-200 rounded-lg overflow-hidden bg-white shadow-sm">
+      <div className="my-8 border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
         {/* Tab Headers */}
-        <div className="flex border-b border-ash-200 overflow-x-auto bg-paper">
+        <div className="flex border-b border-gray-200 overflow-x-auto bg-slate-50/80 px-3 pt-3 gap-2">
           {tabs.map((tab, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => setActiveTabIdx(idx)}
-              className={`px-5 py-3.5 font-display text-[14.5px] font-bold border-b-2 text-center whitespace-nowrap transition-all ${
+              className={`px-5 py-3 font-display text-[14.5px] font-bold rounded-t-xl transition-all border-b-2 text-center whitespace-nowrap ${
                 activeTabIdx === idx
-                  ? 'border-forest-600 text-forest-700 bg-white'
-                  : 'border-transparent text-ash-500 hover:text-navy-800'
+                  ? 'border-[#8bc34a] text-[#8bc34a] bg-white shadow-xs'
+                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100/60'
               }`}
             >
               {tab.title}
@@ -59,7 +60,7 @@ export default function TabBlock({ content = {}, isEditor = false, onUpdate }: T
           ))}
         </div>
         {/* Tab Content */}
-        <div className="p-6 font-body text-ash-700 text-[15px] leading-relaxed">
+        <div className="p-6 font-body text-gray-700 text-[15px] leading-relaxed">
           {tabs[activeTabIdx]?.content}
         </div>
       </div>

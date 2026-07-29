@@ -22,9 +22,11 @@ export default function ImageBlock({ content = {}, isEditor = false, onUpdate }:
   if (!isEditor) {
     if (!imageUrl) return null;
     return (
-      <figure className="my-6 text-center">
-        <img src={imageUrl} alt={alt || caption} className="mx-auto rounded-lg max-h-[500px] object-contain shadow-sm" />
-        {caption && <figcaption className="mt-2 text-xs text-muted-foreground italic font-body">{caption}</figcaption>}
+      <figure className="my-8 text-center">
+        <div className="relative w-full overflow-hidden rounded-2xl shadow-sm border border-gray-100 bg-gray-50 max-h-[500px]">
+          <img src={imageUrl} alt={alt || caption} className="mx-auto rounded-2xl max-h-[500px] object-contain" />
+        </div>
+        {caption && <figcaption className="mt-3 text-[13px] text-gray-500 italic font-body">{caption}</figcaption>}
       </figure>
     );
   }

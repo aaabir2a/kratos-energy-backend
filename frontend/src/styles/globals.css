@@ -92,3 +92,187 @@
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { @apply rounded-full bg-muted-foreground/30; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }
+
+/* TipTap & Blog CMS Typography Styles */
+.ProseMirror {
+  outline: none !important;
+  min-height: 150px;
+}
+
+.prose h1, .ProseMirror h1 {
+  font-size: 1.875rem /* 30px */;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #1e293b;
+}
+
+.prose h2, .ProseMirror h2 {
+  font-size: 1.5rem /* 24px */;
+  font-weight: 700;
+  line-height: 1.33;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+}
+
+.prose h3, .ProseMirror h3 {
+  font-size: 1.25rem /* 20px */;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+}
+
+.prose p, .ProseMirror p {
+  margin-bottom: 0.75rem;
+  line-height: 1.625;
+}
+
+/* Remove extra paragraph spacing inside list items to fix gap issue */
+.prose li p, .ProseMirror li p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: 1.5;
+  color: #0f172a !important; /* Dark black text */
+}
+
+.prose ul, .ProseMirror ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: #0f172a !important;
+}
+
+.prose ol, .ProseMirror ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: #0f172a !important;
+}
+
+.prose li, .ProseMirror li {
+  display: list-item !important;
+  margin-top: 0.1rem !important;
+  margin-bottom: 0.1rem !important;
+  line-height: 1.5;
+  color: #0f172a !important; /* Dark black text */
+}
+
+/* Bullet dots and list numbers marker color */
+.prose ul ::marker, .ProseMirror ul ::marker,
+.prose ol ::marker, .ProseMirror ol ::marker,
+.prose li::marker, .ProseMirror li::marker {
+  color: #0f172a !important; /* Dark black bullet dots & numbers */
+  font-weight: 700 !important;
+}
+
+.prose strong, .ProseMirror strong {
+  font-weight: 700;
+}
+
+.prose em, .ProseMirror em {
+  font-style: italic;
+}
+
+.prose u, .ProseMirror u {
+  text-decoration-line: underline;
+}
+
+.prose s, .ProseMirror s {
+  text-decoration-line: line-through;
+}
+
+.prose blockquote, .ProseMirror blockquote {
+  border-left-width: 4px;
+  border-color: #cbd5e1;
+  padding-left: 1rem;
+  font-style: italic;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* TipTap Resizable Table Styles */
+.prose table, .ProseMirror table {
+  border-collapse: collapse !important;
+  margin: 1.25rem 0 !important;
+  width: 100% !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.prose td, .ProseMirror td,
+.prose th, .ProseMirror th {
+  border: 1px solid #cbd5e1 !important;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 10px 14px !important;
+  position: relative;
+  vertical-align: top !important;
+}
+
+.prose th, .ProseMirror th {
+  background-color: #8bc34a !important; /* Leaf green-400 */
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  border: 1px solid #7cb342 !important;
+}
+
+.prose th p, .ProseMirror th p {
+  color: #ffffff !important;
+  margin: 0 !important;
+  font-weight: 700 !important;
+}
+
+.prose td p, .ProseMirror td p {
+  margin: 0 !important;
+}
+
+.prose tbody tr:nth-child(even), .ProseMirror tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.prose tbody tr:hover, .ProseMirror tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.ProseMirror .selectedCell:after {
+  background: rgba(59, 130, 246, 0.1);
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.ProseMirror .column-resize-handle {
+  background-color: #3b82f6;
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+
+

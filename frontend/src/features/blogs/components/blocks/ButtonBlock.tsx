@@ -21,18 +21,18 @@ export default function ButtonBlock({ content = {}, isEditor = false, onUpdate }
   if (!isEditor) {
     const alignClass =
       alignment === 'center'
-        ? 'text-center'
+        ? 'justify-center'
         : alignment === 'right'
-        ? 'text-right'
-        : 'text-left';
+        ? 'justify-end'
+        : 'justify-start';
 
     return (
-      <div className={`my-6 ${alignClass}`}>
+      <div className={`my-8 flex w-full ${alignClass}`}>
         <a
           href={url || '#'}
-          className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-7 py-3.5 border border-transparent text-[15px] font-display font-bold rounded-xl text-white bg-[#8bc34a] hover:bg-[#7cb342] transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
         >
-          {text}
+          {text || 'Click Here'}
         </a>
       </div>
     );

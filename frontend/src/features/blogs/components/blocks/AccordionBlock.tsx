@@ -44,20 +44,36 @@ export default function AccordionBlock({ content = {}, isEditor = false, onUpdat
 
   if (!isEditor) {
     return (
-      <div className="my-6 border border-ash-200 rounded-lg overflow-hidden divide-y divide-ash-200 bg-white">
+      <div className="my-8 space-y-4">
         {items.map((item, idx) => {
           const isOpen = openIndexes.includes(idx);
           return (
-            <div key={idx} className="group">
+            <div
+              key={idx}
+              className={`rounded-xl overflow-hidden shadow-sm transition-all duration-200 border ${
+                isOpen
+                  ? 'border-[#8bc34a] bg-white shadow-md'
+                  : 'border-gray-200 bg-white hover:border-[#8bc34a]/60 hover:shadow-md'
+              }`}
+            >
               <button
+                type="button"
                 onClick={() => toggleAccordion(idx)}
-                className="w-full flex items-center justify-between p-4 font-display font-bold text-navy-800 hover:text-forest-700 text-left transition-colors text-[16px]"
+                className={`w-full flex items-center justify-between px-6 py-4 font-display font-bold text-left transition-colors text-[16px] leading-snug min-h-[54px] gap-4 ${
+                  isOpen
+                    ? 'bg-[#8bc34a] text-white'
+                    : 'bg-white text-gray-900 hover:text-[#8bc34a]'
+                }`}
               >
-                <span>{item.title}</span>
-                <ChevronDown className={`w-4 h-4 text-ash-400 group-hover:text-forest-700 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <span className="flex-1 font-semibold">{item.title}</span>
+                <ChevronDown
+                  className={`w-5 h-5 transition-transform duration-200 shrink-0 ${
+                    isOpen ? 'text-white rotate-180' : 'text-[#8bc34a]'
+                  }`}
+                />
               </button>
               {isOpen && (
-                <div className="p-4 pt-0 font-body text-ash-700 text-[14.5px] leading-relaxed border-t border-ash-50 bg-paper">
+                <div className="px-6 py-5 text-gray-700 text-[15px] leading-relaxed font-body bg-white border-t border-[#8bc34a]/20">
                   {item.content}
                 </div>
               )}
