@@ -276,6 +276,7 @@ export interface LeadForm {
   version: number;
   isActive: boolean;
   submitButtonText: string;
+  createdAt: string;
 }
 
 export interface LandingPage {
@@ -294,7 +295,8 @@ export interface LandingPage {
   conversionCount: number;
   createdAt: string;
   campaign: { id: string; name: string } | null;
-  forms: LeadForm[];
+  customLeadFormId: string | null;
+  customLeadForm: LeadForm | null;
   _count?: { leads: number };
 }
 

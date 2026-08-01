@@ -15,6 +15,7 @@ export const createPageSchema = z.object({
   redirectUrl: z.string().url().max(1000).optional(),
   campaignId: z.string().uuid().optional(),
   packageId: z.string().uuid().optional(),
+  customLeadFormId: z.string().uuid().nullable().optional(),
   seoMeta: z
     .object({
       title: z.string().max(70).optional(),

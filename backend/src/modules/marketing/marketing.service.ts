@@ -8,7 +8,7 @@ import { parseFieldsSchema } from './formEngine';
 const pageInclude = {
   campaign: { select: { id: true, name: true } },
   createdBy: { select: { firstName: true, lastName: true } },
-  forms: { orderBy: { createdAt: 'asc' as const } },
+  customLeadForm: true,
   _count: { select: { leads: true } },
 } satisfies Prisma.LandingPageInclude;
 
@@ -74,21 +74,40 @@ export const marketingService = {
   },
 
   // ── Forms ──────────────────────────────────────────
-  async createForm(landingPageId: string, input: { formTitle: string; fieldsSchema: unknown; submitButtonText?: string }) {
-    await this.getPage(landingPageId);
+  async listForms(params: { page: number; limit: number; skip: number; search?: string }) {
+    const where: Prisma.CustomLeadFormWhereInput = {
+      isGlobal: false,
+      ...(params.search
+        ? { formTitle: { contains: params.search, mode: 'insensitive' } }
+        : {}),
+    };
+    const [items, total] = await prisma.$transaction([
+      prisma.customLeadForm.findMany({ where, skip: params.skip, take: params.limit, orderBy: { createdAt: 'desc' } }),
+      prisma.customLeadForm.count({ where }),
+    ]);
+    return { items, meta: buildMeta(params.page, params.limit, total) };
+  },
+
+  async getForm(id: string) {
+    const form = await prisma.customLeadForm.findUnique({ where: { id } });
+    if (!form) throw AppError.notFound('Form not found');
+    return form;
+  },
+
+  async createForm(input: { formTitle: string; fieldsSchema: unknown; submitButtonText?: string; isActive?: boolean }) {
     return prisma.customLeadForm.create({
       data: {
-        landingPageId,
         formTitle: input.formTitle,
         fieldsSchema: input.fieldsSchema as Prisma.InputJsonValue,
-        submitButtonText: input.submitButtonText,
+        submitButtonText: input.submitButtonText || 'Get my free quote',
+        isActive: input.isActive ?? true,
+        isGlobal: false,
       },
     });
   },
 
   async updateForm(formId: string, input: { formTitle?: string; fieldsSchema?: unknown; submitButtonText?: string; isActive?: boolean }) {
-    const form = await prisma.customLeadForm.findUnique({ where: { id: formId } });
-    if (!form) throw AppError.notFound('Form not found');
+    const form = await this.getForm(formId);
     return prisma.customLeadForm.update({
       where: { id: formId },
       data: {
@@ -104,6 +123,11 @@ export const marketingService = {
           : {}),
       },
     });
+  },
+
+  async deleteForm(id: string) {
+    await this.getForm(id);
+    return prisma.customLeadForm.delete({ where: { id } });
   },
 
   // ── Global site form (singleton, not tied to a page) ─
@@ -138,7 +162,6 @@ export const marketingService = {
       return prisma.customLeadForm.create({
         data: {
           isGlobal: true,
-          landingPageId: null,
           formTitle: input.formTitle,
           fieldsSchema: input.fieldsSchema as Prisma.InputJsonValue,
           submitButtonText: input.submitButtonText,
@@ -170,6 +193,15 @@ export const marketingService = {
     return form ?? null;
   },
 
+  async publicForm(id: string) {
+    const form = await prisma.customLeadForm.findFirst({
+      where: { id, isActive: true },
+      select: { id: true, formTitle: true, fieldsSchema: true, version: true, submitButtonText: true },
+    });
+    if (!form) throw AppError.notFound('Form not found or inactive');
+    return form;
+  },
+
   // ── Public delivery ────────────────────────────────
   async publicPage(slug: string) {
     const page = await prisma.landingPage.findFirst({
@@ -185,10 +217,7 @@ export const marketingService = {
         redirectUrl: true,
         seoMeta: true,
         themeConfig: true,
-        forms: {
-          where: { isActive: true },
-          orderBy: { createdAt: 'asc' },
-          take: 1,
+        customLeadForm: {
           select: { id: true, formTitle: true, fieldsSchema: true, version: true, submitButtonText: true },
         },
       },

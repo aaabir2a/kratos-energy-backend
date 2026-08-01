@@ -269,14 +269,21 @@ export const intakeService = {
     let formVersion: number | null = null;
     let fields: FieldDescriptor[] = [];
 
-    if (input.landingPageSlug) {
+    if (input.customLeadFormId) {
+      const form = await prisma.customLeadForm.findFirst({
+        where: { id: input.customLeadFormId, isActive: true },
+      });
+      if (!form) throw AppError.badRequest('Unknown or inactive lead form');
+      fields = parseFieldsSchema(form.fieldsSchema);
+      formVersion = form.version;
+    } else if (input.landingPageSlug) {
       const page = await prisma.landingPage.findFirst({
         where: { urlSlug: input.landingPageSlug, status: 'PUBLISHED', deletedAt: null },
-        include: { forms: { where: { isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 } },
+        include: { customLeadForm: true },
       });
       if (!page) throw AppError.badRequest('Unknown or unpublished landing page');
       landingPageId = page.id;
-      const form = page.forms[0];
+      const form = page.customLeadForm && page.customLeadForm.isActive ? page.customLeadForm : null;
       if (form) {
         fields = parseFieldsSchema(form.fieldsSchema);
         formVersion = form.version;

@@ -44,7 +44,8 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
       { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },
-      { to: '/marketing', label: 'Marketing', icon: Megaphone, perm: 'landing_pages.read' },
+      { to: '/marketing', label: 'Landing Pages', icon: Megaphone, perm: 'landing_pages.read' },
+      { to: '/marketing/forms', label: 'Lead Forms', icon: FormInput, perm: 'forms.read' },
     ],
   },
   {

@@ -140,10 +140,14 @@ export const marketingApi = {
   updatePage: (id: string, body: Record<string, unknown>) =>
     api.patch<ApiSuccess<LandingPage>>(`/landing-pages/${id}`, body).then((r) => r.data.data),
   removePage: (id: string) => api.delete(`/landing-pages/${id}`),
-  createForm: (pageId: string, body: Record<string, unknown>) =>
-    api.post<ApiSuccess<LeadForm>>(`/landing-pages/${pageId}/forms`, body).then((r) => r.data.data),
+  createForm: (body: Record<string, unknown>) =>
+    api.post<ApiSuccess<LeadForm>>('/forms', body).then((r) => r.data.data),
   updateForm: (formId: string, body: Record<string, unknown>) =>
     api.patch<ApiSuccess<LeadForm>>(`/forms/${formId}`, body).then((r) => r.data.data),
+  removeForm: (id: string) => api.delete(`/forms/${id}`),
+  listForms: (params?: { search?: string; limit?: number }) =>
+    api.get<ApiSuccess<LeadForm[]>>('/forms', { params }).then((r) => r.data),
+  getForm: (id: string) => api.get<ApiSuccess<LeadForm>>(`/forms/${id}`).then((r) => r.data.data),
   publicPage: (slug: string) => api.get<ApiSuccess<PublicPage>>(`/p/${slug}`).then((r) => r.data.data),
   publicSubmit: (body: Record<string, unknown>) =>
     api.post<ApiSuccess<{ message: string; reference?: string }>>('/leads/submit', body).then((r) => r.data.data),

@@ -77,14 +77,7 @@ landingPagesRouter.delete(
   }),
 );
 
-landingPagesRouter.post(
-  '/:id/forms',
-  requirePermission('forms.write'),
-  validate({ params: idParamSchema, body: createFormSchema }),
-  asyncHandler(async (req, res) => created(res, await marketingService.createForm(req.params.id, req.body))),
-);
-
-// Standalone form updates.
+// Standalone form management.
 export const formsRouter = Router();
 formsRouter.use(authenticate);
 
@@ -107,11 +100,59 @@ formsRouter.put(
   }),
 );
 
+formsRouter.get(
+  '/',
+  requirePermission('forms.read'),
+  asyncHandler(async (req, res) => {
+    const { page, limit, skip } = resolvePage(req.query);
+    const { items, meta } = await marketingService.listForms({
+      page,
+      limit,
+      skip,
+      search: req.query.search as string | undefined,
+    });
+    paginated(res, items, meta);
+  }),
+);
+
+formsRouter.get(
+  '/:id',
+  requirePermission('forms.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await marketingService.getForm(req.params.id))),
+);
+
+formsRouter.post(
+  '/',
+  requirePermission('forms.write'),
+  validate({ body: createFormSchema }),
+  asyncHandler(async (req, res) => {
+    const form = await marketingService.createForm(req.body);
+    await audit({ userId: req.auth?.userId, action: 'custom_form.create', entityType: 'custom_lead_form', entityId: form.id, ip: req.ip });
+    created(res, form);
+  }),
+);
+
 formsRouter.patch(
   '/:id',
   requirePermission('forms.write'),
   validate({ params: idParamSchema, body: updateFormSchema }),
-  asyncHandler(async (req, res) => ok(res, await marketingService.updateForm(req.params.id, req.body))),
+  asyncHandler(async (req, res) => {
+    const form = await marketingService.updateForm(req.params.id, req.body);
+    await audit({ userId: req.auth?.userId, action: 'custom_form.update', entityType: 'custom_lead_form', entityId: form.id, ip: req.ip });
+    ok(res, form);
+  }),
+);
+
+formsRouter.delete(
+  '/:id',
+  requirePermission('forms.write'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => {
+    await marketingService.deleteForm(req.params.id);
+    await audit({ userId: req.auth?.userId, action: 'custom_form.delete', entityType: 'custom_lead_form', entityId: req.params.id, ip: req.ip });
+    noContent(res);
+  }),
 );
 
 // ── Public page delivery (no auth) ────────────────────
@@ -122,10 +163,21 @@ publicPagesRouter.get(
   asyncHandler(async (req, res) => ok(res, await marketingService.publicPage(req.params.slug))),
 );
 
-// ── Public global-form delivery (no auth) ─────────────
-// Consumed by kratos-energy.com contact/home pages to render the shared form.
+// ── Public global-form / custom-form delivery (no auth) ─────────────
 export const publicFormRouter = Router();
 publicFormRouter.get(
   '/lead-form',
-  asyncHandler(async (_req, res) => ok(res, await marketingService.publicGlobalForm())),
+  asyncHandler(async (req, res) => {
+    const id = req.query.id as string | undefined;
+    if (id) {
+      return ok(res, await marketingService.publicForm(id));
+    }
+    return ok(res, await marketingService.publicGlobalForm());
+  }),
+);
+
+publicFormRouter.get(
+  '/lead-form/:id',
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await marketingService.publicForm(req.params.id))),
 );

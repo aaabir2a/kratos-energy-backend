@@ -678,11 +678,13 @@ model LandingPage {
   createdBy User?              @relation("PageCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   package   Package?           @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
-  forms CustomLeadForm[]
-  leads Lead[]
+  customLeadFormId String?         @map("custom_lead_form_id") @db.Uuid
+  customLeadForm   CustomLeadForm? @relation(fields: [customLeadFormId], references: [id], onDelete: SetNull)
+  leads            Lead[]
 
   @@index([status])
   @@index([campaignId])
+  @@index([customLeadFormId])
   @@map("landing_pages")
 }
 
@@ -690,7 +692,6 @@ model LandingPage {
 // submissions validate against the schema that existed when submitted.
 model CustomLeadForm {
   id               String   @id @default(uuid()) @db.Uuid
-  landingPageId    String?  @map("landing_page_id") @db.Uuid
   // Global site form (contact/home on kratos-energy.com) — not tied to a page.
   // Singleton: at most one active global form, enforced in the service layer.
   isGlobal         Boolean  @default(false) @map("is_global")
@@ -702,9 +703,8 @@ model CustomLeadForm {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  landingPage LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  landingPages LandingPage[]
 
-  @@index([landingPageId])
   @@index([isGlobal])
   @@map("custom_lead_forms")
 }

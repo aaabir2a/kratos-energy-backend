@@ -35,6 +35,7 @@ export const publicSubmitSchema = z
     consentMarketing: z.boolean().optional(),
     sourceSlug: z.string().max(50).optional(), // defaults to "website"
     landingPageSlug: z.string().max(120).optional(), // ties submission to a published page + its form
+    customLeadFormId: z.string().uuid().optional(),
     customFields: z.record(z.unknown()).optional(), // validated against the page's fields_schema
     // Honeypot — bots fill it, humans never see it. Non-empty => silently drop.
     website: z.string().optional(),
