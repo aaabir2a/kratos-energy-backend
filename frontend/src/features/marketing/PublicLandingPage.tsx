@@ -132,7 +132,7 @@ export function PublicLandingPage() {
   }
 
   const p = page.data;
-  const form = p.forms[0];
+  const form = p.customLeadForm;
   const sortedFields = form ? [...form.fieldsSchema].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
   return (

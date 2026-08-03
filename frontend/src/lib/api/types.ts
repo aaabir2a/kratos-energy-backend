@@ -309,7 +309,7 @@ export interface PublicPage {
   detailedDescription: string | null;
   thankYouMessage: string | null;
   redirectUrl: string | null;
-  forms: LeadForm[];
+  customLeadForm: LeadForm | null;
 }
 
 // ── Phase 6: Catalog ──────────────────────────────────
