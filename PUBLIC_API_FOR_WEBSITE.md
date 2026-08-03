@@ -380,6 +380,123 @@ GET /public/projects/:id
 
 ---
 
+## 6. Custom landing pages & standalone forms
+
+Marketing builds these in the CRM (**Landing Pages** and **Lead Forms**). A form
+is a reusable object — one form can be attached to many landing pages, or used
+on its own anywhere on the site. Both are rendered from the same
+`fieldsSchema` contract as §4.
+
+### 6a. Fetch a landing page (content + its form)
+
+```
+GET /p/:slug
+```
+
+`:slug` is the page's `urlSlug` from the CRM. Only **PUBLISHED** pages resolve
+(404 otherwise). Each call increments the page's view counter.
+
+**Send:** nothing.
+
+**Response:**
+
+```jsonc
+{
+  "success": true,
+  "data": {
+    "id": "fd7ac7a7-…",
+    "title": "Spring Solar Offer",
+    "urlSlug": "spring-offer",
+    "heroDescription": "…",
+    "heroImageUrl": "https://api.kratos-energy.com/kratos-uploads/hero/…webp",
+    "detailedDescription": "…",          // long copy / HTML
+    "thankYouMessage": "Thanks — we'll call you today.",
+    "redirectUrl": null,                 // if set, redirect here after submit
+    "seoMeta": { "title": "…", "description": "…" },
+    "themeConfig": { },
+    "customLeadForm": {                  // null if no form is attached
+      "id": "edf2caa9-…",
+      "formTitle": "Spring Promo Form",
+      "submitButtonText": "Get my free quote",
+      "version": 1,
+      "fieldsSchema": [ /* same shape as §4a, incl. maps_to */ ]
+    }
+  }
+}
+```
+
+### 6b. Fetch a form on its own (no landing page)
+
+```
+GET /public/lead-form/:id          # or  GET /public/lead-form?id=<uuid>
+```
+
+Use this to drop a CRM-built form anywhere on the site. `:id` is the form's
+UUID (CRM → Lead Forms). With **no** id, `/public/lead-form` returns the global
+site form (§4).
+
+**Response:** `{ "success": true, "data": { id, formTitle, submitButtonText, version, fieldsSchema } }`
+
+### 6c. Submit
+
+Same endpoint as everything else — `POST /leads/submit` — with **one** extra key
+identifying the source:
+
+| You rendered | Send this key | Value |
+|---|---|---|
+| A landing page (`/p/:slug`) | `landingPageSlug` | the page's `urlSlug` |
+| A standalone form | `customLeadFormId` | the form's `id` |
+| The global site form | *(neither)* | — |
+
+```jsonc
+// Landing page submission
+{
+  "landingPageSlug": "spring-offer",
+  "customFields": {
+    "name": "Jane Doe",              // maps_to firstName
+    "email": "jane@example.com",     // maps_to email
+    "interest": "Solar"              // plain custom field
+  },
+  "utmSource": "google", "utmMedium": "cpc", "utmCampaign": "spring",
+  "gclid": "…", "referrerUrl": "https://kratos-energy.com/p/spring-offer",
+  "website": ""                      // honeypot — leave empty
+}
+```
+
+```jsonc
+// Standalone form submission — identical, just a different source key
+{
+  "customLeadFormId": "edf2caa9-…",
+  "customFields": { "name": "Jane Doe", "email": "jane@example.com", "interest": "Battery" },
+  "website": ""
+}
+```
+
+Notes:
+- Values are validated against **that** form's schema; a missing `required`
+  field → `400` with per-field errors (see §4b).
+- `customLeadFormId` takes priority if you send both keys.
+- An unknown/unpublished `landingPageSlug`, or an unknown/inactive
+  `customLeadFormId`, → `400`.
+- Success response is the same as §4b (`message` + `reference`). If the page has
+  a `thankYouMessage` / `redirectUrl`, use those for the post-submit UX.
+
+**Origin tracking (automatic).** The API stamps where each lead came from, and
+the CRM leads list shows it in an **Origin** column — no extra fields needed
+from you:
+
+| Submitted with | Origin badge shows |
+|---|---|
+| `landingPageSlug` | the landing page's title |
+| `customLeadFormId` | the form's title |
+| neither (global form) | *Website* |
+| `customFields.lead_source: "build_configurator"` | *Build* |
+
+If you want to override the label, send your own `customFields.lead_source` —
+a client-supplied value always wins.
+
+---
+
 ## Quick reference
 
 | Method | Path | Auth | Purpose |
@@ -392,3 +509,5 @@ GET /public/projects/:id
 | POST | `/leads/submit` | none | Submit form → creates a lead |
 | GET | `/public/projects` | none | Published projects with `images[]` (paginated) |
 | GET | `/public/projects/:id` | none | One published project |
+| GET | `/p/:slug` | none | Landing page content + its attached form |
+| GET | `/public/lead-form/:id` | none | One CRM-built form by id |

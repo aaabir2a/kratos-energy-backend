@@ -1,4 +1,4 @@
-import { Wrench, Sun, Battery, PlugZap, Home, DollarSign, TrendingDown } from 'lucide-react';
+import { Wrench, Sun, Battery, PlugZap, Home, DollarSign, TrendingDown, LayoutTemplate, FormInput, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,6 +12,52 @@ export function BuildBadge() {
   return (
     <Badge variant="secondary" className="gap-1 border-primary/30 bg-primary/10 text-primary">
       <Wrench className="h-3 w-3" /> Build
+    </Badge>
+  );
+}
+
+const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+
+// Origin badge for the leads list. The backend stamps lead_source (+ page/form
+// titles) into customFormResponses on every public submission.
+export function OriginBadge({ custom }: { custom: Record<string, unknown> | null | undefined }) {
+  const source = text(custom?.lead_source);
+  if (!source) return <span className="text-xs text-muted-foreground">—</span>;
+
+  if (source === 'build_configurator') return <BuildBadge />;
+
+  if (source === 'landing_page') {
+    const label = text(custom?.page_title) ?? text(custom?.page_slug) ?? 'Landing page';
+    return (
+      <Badge variant="secondary" className="max-w-[180px] gap-1" title={label}>
+        <LayoutTemplate className="h-3 w-3 shrink-0" />
+        <span className="truncate">{label}</span>
+      </Badge>
+    );
+  }
+
+  if (source === 'custom_form') {
+    const label = text(custom?.form_title) ?? 'Custom form';
+    return (
+      <Badge variant="secondary" className="max-w-[180px] gap-1" title={label}>
+        <FormInput className="h-3 w-3 shrink-0" />
+        <span className="truncate">{label}</span>
+      </Badge>
+    );
+  }
+
+  if (source === 'website') {
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <Globe className="h-3 w-3" /> Website
+      </Badge>
+    );
+  }
+
+  // Unknown/custom marker sent by the site — show it rather than hiding it.
+  return (
+    <Badge variant="secondary" className="max-w-[180px]" title={source}>
+      <span className="truncate">{source.replace(/_/g, ' ')}</span>
     </Badge>
   );
 }

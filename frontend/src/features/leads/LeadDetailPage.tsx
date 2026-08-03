@@ -40,7 +40,7 @@ import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate } from '@/lib/utils';
 import { StatusBadge, PriorityDot, StageBadge, fullName } from './leadHelpers';
-import { isBuildLead, BuildBadge, BuildConfigCard } from './buildConfig';
+import { isBuildLead, OriginBadge, BuildConfigCard } from './buildConfig';
 import type { LeadActivity } from '@/lib/api/types';
 
 const ACTIVITY_ICON: Record<LeadActivity['type'], React.ElementType> = {
@@ -223,7 +223,7 @@ export function LeadDetailPage() {
               <StatusBadge status={l.status} />
               <StageBadge stage={l.stage} />
               <PriorityDot priority={l.priority} />
-              {isBuildLead(l.customFormResponses) && <BuildBadge />}
+              <OriginBadge custom={l.customFormResponses} />
             </div>
           </div>
         </div>

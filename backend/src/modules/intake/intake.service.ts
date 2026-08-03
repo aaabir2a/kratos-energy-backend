@@ -268,6 +268,9 @@ export const intakeService = {
     let customFields = input.customFields ?? {};
     let formVersion: number | null = null;
     let fields: FieldDescriptor[] = [];
+    // Where this submission came from — persisted below so the CRM leads list
+    // can show an Origin badge for custom landing pages / standalone forms.
+    let origin: { source: string; formId?: string; formTitle?: string; pageTitle?: string } | null = null;
 
     if (input.customLeadFormId) {
       const form = await prisma.customLeadForm.findFirst({
@@ -276,6 +279,7 @@ export const intakeService = {
       if (!form) throw AppError.badRequest('Unknown or inactive lead form');
       fields = parseFieldsSchema(form.fieldsSchema);
       formVersion = form.version;
+      origin = { source: 'custom_form', formId: form.id, formTitle: form.formTitle };
     } else if (input.landingPageSlug) {
       const page = await prisma.landingPage.findFirst({
         where: { urlSlug: input.landingPageSlug, status: 'PUBLISHED', deletedAt: null },
@@ -284,6 +288,7 @@ export const intakeService = {
       if (!page) throw AppError.badRequest('Unknown or unpublished landing page');
       landingPageId = page.id;
       const form = page.customLeadForm && page.customLeadForm.isActive ? page.customLeadForm : null;
+      origin = { source: 'landing_page', pageTitle: page.title, formId: form?.id, formTitle: form?.formTitle };
       if (form) {
         fields = parseFieldsSchema(form.fieldsSchema);
         formVersion = form.version;
@@ -337,6 +342,16 @@ export const intakeService = {
       if (value === undefined || value === null || value === '') continue;
       if (typeof value === 'string') customFields[key] = value.slice(0, 500);
       else if (typeof value === 'number' || typeof value === 'boolean') customFields[key] = value;
+    }
+
+    // Stamp the origin so the leads list can badge it. A client-supplied
+    // lead_source (e.g. "build_configurator") always wins.
+    if (origin) {
+      if (!customFields.lead_source) customFields.lead_source = origin.source;
+      if (origin.formId && !customFields.form_id) customFields.form_id = origin.formId;
+      if (origin.formTitle && !customFields.form_title) customFields.form_title = origin.formTitle;
+      if (origin.pageTitle && !customFields.page_title) customFields.page_title = origin.pageTitle;
+      if (input.landingPageSlug && !customFields.page_slug) customFields.page_slug = input.landingPageSlug;
     }
 
     const firstName = (mapped.firstName ?? input.firstName)?.trim();
