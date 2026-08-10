@@ -9,7 +9,7 @@ export interface AuthContext {
 
 // Row-level visibility for leads, enforced in the service/repository layer.
 //  - admin / marketing: all leads (marketing is read/export only via RBAC)
-//  - manager: leads in their office (all offices if they have none)
+//  - manager: leads in their office, plus leads with no office yet
 //  - sales: only leads assigned to them
 export function buildLeadScope(auth: AuthContext): Prisma.LeadWhereInput {
   const base: Prisma.LeadWhereInput = { deletedAt: null };
@@ -19,7 +19,13 @@ export function buildLeadScope(auth: AuthContext): Prisma.LeadWhereInput {
     case 'marketing':
       return base;
     case 'manager':
-      return auth.officeId ? { ...base, officeId: auth.officeId } : base;
+      // Publicly captured leads (website / chatbot / social) have no office, so
+      // an office-only filter would hide every one of them from managers.
+      // Kept under AND — callers spread their own top-level OR for search, which
+      // would otherwise overwrite this and leak other offices' leads.
+      return auth.officeId
+        ? { ...base, AND: [{ OR: [{ officeId: auth.officeId }, { officeId: null }] }] }
+        : base;
     case 'sales':
       return { ...base, assignedToId: auth.userId };
     default:

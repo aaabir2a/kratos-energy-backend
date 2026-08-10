@@ -151,6 +151,13 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
     ? await pickRoundRobinAssignee(null)
     : null;
 
+  // Public captures have no office of their own — inherit the assigned rep's so
+  // the lead lands in that office's book. Unassigned leads stay office-less and
+  // remain visible to every manager (see buildLeadScope).
+  const officeId = assignedToId
+    ? (await prisma.user.findUnique({ where: { id: assignedToId }, select: { officeId: true } }))?.officeId ?? null
+    : null;
+
   const lead = await prisma.lead.create({
     data: {
       firstName: args.contact.firstName,
@@ -168,6 +175,7 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
       leadSourceId: sourceId,
       campaignId,
       landingPageId: args.landingPageId ?? undefined,
+      officeId: officeId ?? undefined,
       stageId: defaultStage?.id,
       assignedToId,
       utmSource: args.attribution.utmSource,

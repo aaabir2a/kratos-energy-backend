@@ -35,7 +35,11 @@ function buildDealScope(auth: AuthContext): Prisma.DealWhereInput {
     case 'marketing':
       return base;
     case 'manager':
-      return auth.officeId ? { ...base, officeId: auth.officeId } : base;
+      // Same as leads: deals converted from office-less leads must stay visible.
+      // Under AND so a caller's search OR can't overwrite the office filter.
+      return auth.officeId
+        ? { ...base, AND: [{ OR: [{ officeId: auth.officeId }, { officeId: null }] }] }
+        : base;
     default:
       return { ...base, ownerId: auth.userId };
   }
