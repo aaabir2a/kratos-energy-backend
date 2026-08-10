@@ -262,6 +262,8 @@ path({ method: 'get', path: '/public/projects', tag: 'Public Website', summary: 
 path({ method: 'get', path: '/public/projects/{id}', tag: 'Public Website', summary: 'PUBLIC: one published project', auth: false, params: idParam });
 path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
 
+path({ method: 'get', path: '/leads/export', tag: 'Leads', summary: 'Export leads as CSV (leads.export). Filters: search, dateFrom, dateTo, leadSourceId, origin, assignedToId (or "unassigned"), stageId, status, priority' });
+
 // ═══════════════ Settings ═══════════════
 path({ method: 'get', path: '/settings', tag: 'Settings', summary: 'Read app settings (leadAutoAssign)' });
 path({ method: 'put', path: '/settings/lead-assignment', tag: 'Settings', summary: 'Turn round-robin auto-assignment on/off for new leads', body: leadAssignmentSchema });

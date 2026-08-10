@@ -110,6 +110,22 @@ export const leadsApi = {
     api.post<ApiSuccess<LeadNote>>(`/leads/${id}/notes`, { body, isPinned }).then((r) => r.data.data),
   attributions: (id: string) =>
     api.get<ApiSuccess<LeadAttributionRow[]>>(`/leads/${id}/attributions`).then((r) => r.data.data),
+  // CSV download. Fetched as a blob so the Authorization header is sent
+  // (a plain <a href> link would be unauthenticated).
+  exportCsv: async (params: Record<string, string | undefined>) => {
+    const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v));
+    const res = await api.get('/leads/export', { params: clean, responseType: 'blob' });
+    const disposition = String(res.headers['content-disposition'] ?? '');
+    const name = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? 'leads.csv';
+    const url = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const pipelineApi = {

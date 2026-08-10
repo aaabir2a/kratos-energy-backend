@@ -29,6 +29,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate, cn } from '@/lib/utils';
 import { StageBadge, StatusBadge, PriorityDot, fullName } from './leadHelpers';
 import { OriginBadge } from './buildConfig';
+import { ExportLeadsDialog } from './ExportLeadsDialog';
 
 const AU_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'] as const;
 
@@ -118,7 +119,9 @@ export function LeadsPage() {
         title="Leads"
         description="Capture, assign and track every enquiry."
         action={
-          can('leads.write') && (
+          <div className="flex items-center gap-2">
+            <ExportLeadsDialog />
+            {can('leads.write') && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -209,7 +212,8 @@ export function LeadsPage() {
                 </form>
               </DialogContent>
             </Dialog>
-          )
+            )}
+          </div>
         }
       />
 

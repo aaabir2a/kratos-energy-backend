@@ -21,6 +21,8 @@ leadsRouter.use(authenticate);
 
 leadsRouter.get('/', requirePermission('leads.read'), asyncHandler(leadsController.list));
 leadsRouter.get('/stats', requirePermission('leads.read'), asyncHandler(leadsController.stats));
+// Declared before /:id so "export" isn't captured as a lead id.
+leadsRouter.get('/export', requirePermission('leads.export'), asyncHandler(leadsController.exportCsv));
 leadsRouter.post('/', requirePermission('leads.write'), validate({ body: createLeadSchema }), asyncHandler(leadsController.create));
 
 leadsRouter.get('/:id', requirePermission('leads.read'), validate({ params: idParamSchema }), asyncHandler(leadsController.get));

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { ok, created, paginated, noContent } from '../../shared/utils/response';
 import { resolvePage } from '../../shared/utils/pagination';
 import { audit } from '../../shared/utils/audit';
+import { toCsv } from '../../shared/utils/csv';
 import { leadsService } from './leads.service';
 import type { AuthContext } from './leads.scope';
 
@@ -28,6 +29,59 @@ export const leadsController = {
 
   async stats(req: Request, res: Response) {
     ok(res, await leadsService.stats(ctx(req)));
+  },
+
+  // CSV download. Honours the caller's row-level scope plus the same filters as
+  // the list view, so a rep can only ever export their own leads.
+  async exportCsv(req: Request, res: Response) {
+    const q = req.query as Record<string, string | undefined>;
+    const rows = await leadsService.exportRows(ctx(req), {
+      search: q.search,
+      stageId: q.stageId,
+      status: q.status as never,
+      priority: q.priority as never,
+      assignedToId: q.assignedToId,
+      leadSourceId: q.leadSourceId,
+      origin: q.origin,
+      dateFrom: q.dateFrom,
+      dateTo: q.dateTo,
+    });
+
+    const custom = (r: (typeof rows)[number], key: string) => {
+      const c = r.customFormResponses as Record<string, unknown> | null;
+      const v = c?.[key];
+      return v === undefined || v === null ? '' : String(v);
+    };
+
+    const csv = toCsv(
+      [
+        'First name', 'Last name', 'Email', 'Phone', 'Secondary phone',
+        'Address', 'Suburb', 'State', 'Postcode',
+        'Status', 'Stage', 'Priority', 'Score',
+        'Source', 'Origin', 'Landing page / form',
+        'Assigned to', 'Assigned email', 'Office',
+        'System size', 'Property type', 'Roof type', 'Marketing consent',
+        'UTM source', 'UTM medium', 'UTM campaign',
+        'Next follow-up', 'Created at',
+      ],
+      rows.map((r) => [
+        r.firstName, r.lastName, r.email, r.phone, r.secondaryPhone,
+        r.addressLine, r.suburb, r.state, r.postcode,
+        r.status, r.stage?.name, r.priority, r.score,
+        r.source?.name, custom(r, 'lead_source'), custom(r, 'page_title') || custom(r, 'form_title'),
+        r.assignedTo ? `${r.assignedTo.firstName} ${r.assignedTo.lastName}`.trim() : '',
+        r.assignedTo?.email, r.office?.name,
+        r.estimatedSystemSize, r.propertyType, r.roofType, r.consentMarketing,
+        r.utmSource, r.utmMedium, r.utmCampaign,
+        r.nextFollowUpAt, r.createdAt,
+      ]),
+    );
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="kratos-leads-${stamp}.csv"`);
+    await audit({ userId: req.auth?.userId, action: 'lead.export', entityType: 'lead', after: { rows: rows.length }, ip: req.ip });
+    res.send(csv);
   },
 
   async get(req: Request, res: Response) {

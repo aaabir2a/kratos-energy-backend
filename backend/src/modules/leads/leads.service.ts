@@ -327,6 +327,93 @@ export const leadsService = {
     });
   },
 
+  // Rows for CSV export. Same row-level scope and filters as list(), but
+  // unpaginated (hard-capped) and with the relations the CSV needs.
+  async exportRows(
+    auth: AuthContext,
+    params: {
+      search?: string;
+      stageId?: string;
+      status?: 'OPEN' | 'CONVERTED' | 'LOST' | 'JUNK';
+      priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+      assignedToId?: string;
+      leadSourceId?: string;
+      origin?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+  ) {
+    // dateTo is inclusive — callers pass a plain date, so span the whole day.
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (params.dateFrom) createdAt.gte = new Date(`${params.dateFrom}T00:00:00.000Z`);
+    if (params.dateTo) createdAt.lte = new Date(`${params.dateTo}T23:59:59.999Z`);
+
+    const where: Prisma.LeadWhereInput = {
+      ...buildLeadScope(auth),
+      ...(params.stageId ? { stageId: params.stageId } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.priority ? { priority: params.priority } : {}),
+      ...(params.assignedToId
+        ? params.assignedToId === 'unassigned'
+          ? { assignedToId: null }
+          : { assignedToId: params.assignedToId }
+        : {}),
+      ...(params.leadSourceId ? { leadSourceId: params.leadSourceId } : {}),
+      ...(params.origin
+        ? params.origin === 'none'
+          ? { OR: [{ customFormResponses: { equals: Prisma.DbNull } }, { customFormResponses: { path: ['lead_source'], equals: Prisma.DbNull } }] }
+          : { customFormResponses: { path: ['lead_source'], equals: params.origin } }
+        : {}),
+      ...(Object.keys(createdAt).length ? { createdAt } : {}),
+      ...(params.search
+        ? {
+            OR: [
+              { firstName: { contains: params.search, mode: 'insensitive' } },
+              { lastName: { contains: params.search, mode: 'insensitive' } },
+              { email: { contains: params.search, mode: 'insensitive' } },
+              { phone: { contains: params.search } },
+              { suburb: { contains: params.search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    return prisma.lead.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 10_000, // safety cap for a single download
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        secondaryPhone: true,
+        addressLine: true,
+        suburb: true,
+        state: true,
+        postcode: true,
+        status: true,
+        priority: true,
+        score: true,
+        estimatedSystemSize: true,
+        propertyType: true,
+        roofType: true,
+        consentMarketing: true,
+        customFormResponses: true,
+        createdAt: true,
+        nextFollowUpAt: true,
+        utmSource: true,
+        utmMedium: true,
+        utmCampaign: true,
+        stage: { select: { name: true } },
+        source: { select: { name: true } },
+        office: { select: { name: true } },
+        assignedTo: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+  },
+
   stats(auth: AuthContext) {
     return leadsRepository.stats(buildLeadScope(auth));
   },
