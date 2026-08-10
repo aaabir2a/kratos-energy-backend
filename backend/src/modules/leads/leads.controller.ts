@@ -3,10 +3,22 @@ import { ok, created, paginated, noContent } from '../../shared/utils/response';
 import { resolvePage } from '../../shared/utils/pagination';
 import { audit } from '../../shared/utils/audit';
 import { toCsv } from '../../shared/utils/csv';
+import { AppError } from '../../shared/errors/AppError';
 import { leadsService } from './leads.service';
+import { leadsImportService } from './leadsImport.service';
 import type { AuthContext } from './leads.scope';
 
 const ctx = (req: Request): AuthContext => req.auth as AuthContext;
+
+// The CSV arrives either as a multipart file ("file") or as raw text in the
+// JSON body ("csv"), so the UI can paste as well as upload.
+function readUpload(req: Request): string {
+  const file = (req as Request & { file?: { buffer: Buffer } }).file;
+  if (file) return file.buffer.toString('utf8');
+  const body = (req.body as { csv?: unknown } | undefined)?.csv;
+  if (typeof body === 'string' && body.trim()) return body;
+  throw AppError.badRequest('No CSV supplied — upload a file (field "file") or send { csv: "..." }');
+}
 
 export const leadsController = {
   async list(req: Request, res: Response) {
@@ -29,6 +41,35 @@ export const leadsController = {
 
   async stats(req: Request, res: Response) {
     ok(res, await leadsService.stats(ctx(req)));
+  },
+
+  // Column spec shown in the import dialog.
+  importSpec(_req: Request, res: Response) {
+    ok(res, { columns: leadsImportService.columns });
+  },
+
+  // Blank CSV with the expected headers + one example row.
+  importTemplate(_req: Request, res: Response) {
+    const cols = leadsImportService.columns;
+    const csv = toCsv(cols.map((c) => c.header), [cols.map((c) => c.example)]);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="kratos-leads-import-template.csv"');
+    res.send(csv);
+  },
+
+  // Dry run: validate the uploaded file and report exactly which cells to fix.
+  async importValidate(req: Request, res: Response) {
+    const csvText = readUpload(req);
+    const { ready: _ready, ...report } = await leadsImportService.analyse(csvText);
+    ok(res, report);
+  },
+
+  // Create the rows that passed validation.
+  async importCommit(req: Request, res: Response) {
+    const csvText = readUpload(req);
+    const { ready: _ready, ...report } = await leadsImportService.commit(ctx(req), csvText);
+    await audit({ userId: req.auth?.userId, action: 'lead.import', entityType: 'lead', after: { imported: report.imported }, ip: req.ip });
+    ok(res, report);
   },
 
   // CSV download. Honours the caller's row-level scope plus the same filters as

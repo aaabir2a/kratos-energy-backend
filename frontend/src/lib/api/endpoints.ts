@@ -29,6 +29,8 @@ import type {
   User,
   Notification,
   Project,
+  ImportColumn,
+  ImportReport,
 } from './types';
 
 // ── Auth ──────────────────────────────────────────────
@@ -125,6 +127,33 @@ export const leadsApi = {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  },
+  importSpec: () =>
+    api.get<ApiSuccess<{ columns: ImportColumn[] }>>('/leads/import/spec').then((r) => r.data.data.columns),
+  importTemplate: async () => {
+    const res = await api.get('/leads/import/template', { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kratos-leads-import-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+  importValidate: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api
+      .post<ApiSuccess<ImportReport>>('/leads/import/validate', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      .then((r) => r.data.data);
+  },
+  importCommit: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api
+      .post<ApiSuccess<ImportReport & { imported: number }>>('/leads/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      .then((r) => r.data.data);
   },
 };
 

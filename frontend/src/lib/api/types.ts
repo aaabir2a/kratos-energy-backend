@@ -402,3 +402,28 @@ export interface Project {
   sortOrder: number;
   createdAt: string;
 }
+
+// ── Lead CSV import ───────────────────────────────────
+export interface ImportColumn {
+  key: string;
+  header: string;
+  required: boolean;
+  example: string;
+  rules: string;
+}
+
+export interface ImportIssue {
+  row: number;
+  column: string;
+  value: string;
+  message: string;
+}
+
+export interface ImportReport {
+  totalRows: number;
+  readyCount: number;
+  issues: ImportIssue[];
+  duplicates: { row: number; identifier: string; reason: string }[];
+  unknownHeaders: string[];
+  imported?: number;
+}

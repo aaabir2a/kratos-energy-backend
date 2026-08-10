@@ -263,6 +263,10 @@ path({ method: 'get', path: '/public/projects/{id}', tag: 'Public Website', summ
 path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
 
 path({ method: 'get', path: '/leads/export', tag: 'Leads', summary: 'Export leads as CSV (leads.export). Filters: search, dateFrom, dateTo, leadSourceId, origin, assignedToId (or "unassigned"), stageId, status, priority' });
+path({ method: 'get', path: '/leads/import/spec', tag: 'Leads', summary: 'Expected import columns, rules and examples (leads.write)' });
+path({ method: 'get', path: '/leads/import/template', tag: 'Leads', summary: 'Download a blank import template CSV (leads.write)' });
+path({ method: 'post', path: '/leads/import/validate', tag: 'Leads', summary: 'Dry run: validate a CSV and report per-cell issues + duplicates (multipart "file" or { csv })' });
+path({ method: 'post', path: '/leads/import', tag: 'Leads', summary: 'Import the rows that pass validation; invalid rows and duplicates are skipped' });
 
 // ═══════════════ Settings ═══════════════
 path({ method: 'get', path: '/settings', tag: 'Settings', summary: 'Read app settings (leadAutoAssign)' });

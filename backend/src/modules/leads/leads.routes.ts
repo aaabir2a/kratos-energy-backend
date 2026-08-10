@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 import { validate } from '../../core/middlewares/validate.middleware';
 import { authenticate } from '../../core/middlewares/auth.middleware';
@@ -15,14 +16,21 @@ import {
   idParamSchema,
 } from './leads.schema';
 
+// CSV uploads only — kept small since the row cap is a few thousand leads.
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
 export const leadsRouter = Router();
 
 leadsRouter.use(authenticate);
 
 leadsRouter.get('/', requirePermission('leads.read'), asyncHandler(leadsController.list));
 leadsRouter.get('/stats', requirePermission('leads.read'), asyncHandler(leadsController.stats));
-// Declared before /:id so "export" isn't captured as a lead id.
+// Declared before /:id so these aren't captured as lead ids.
 leadsRouter.get('/export', requirePermission('leads.export'), asyncHandler(leadsController.exportCsv));
+leadsRouter.get('/import/spec', requirePermission('leads.write'), leadsController.importSpec);
+leadsRouter.get('/import/template', requirePermission('leads.write'), leadsController.importTemplate);
+leadsRouter.post('/import/validate', requirePermission('leads.write'), csvUpload.single('file'), asyncHandler(leadsController.importValidate));
+leadsRouter.post('/import', requirePermission('leads.write'), csvUpload.single('file'), asyncHandler(leadsController.importCommit));
 leadsRouter.post('/', requirePermission('leads.write'), validate({ body: createLeadSchema }), asyncHandler(leadsController.create));
 
 leadsRouter.get('/:id', requirePermission('leads.read'), validate({ params: idParamSchema }), asyncHandler(leadsController.get));
