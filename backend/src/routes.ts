@@ -15,6 +15,7 @@ import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
 import { notificationsRouter } from './modules/notifications/notification.routes';
 import { blogsRouter, publicBlogsRouter } from './modules/blogs/blogs.routes';
 import { projectsRouter, publicProjectsRouter } from './modules/projects/projects.routes';
+import { settingsRouter } from './modules/settings/settings.routes';
 
 export const apiRouter = Router();
 
@@ -52,6 +53,7 @@ apiRouter.use('/public', publicCatalogRouter); // public catalog for the main we
 apiRouter.use('/chatbot', chatbotWebhookRouter); // HMAC-verified platform webhook (no session auth)
 apiRouter.use('/chatbot', chatbotRouter); // staff chat-inbox API
 apiRouter.use('/notifications', notificationsRouter);
+apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/media', mediaRouter);
 apiRouter.use('/public', publicMediaRouter); // hero images for the main website
 apiRouter.use('/blogs', blogsRouter);

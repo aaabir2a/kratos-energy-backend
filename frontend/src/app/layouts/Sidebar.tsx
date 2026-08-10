@@ -19,6 +19,7 @@ import {
   Tags,
   LayoutList,
   Hammer,
+  Shuffle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -73,6 +74,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/roles', label: 'Roles & Permissions', icon: ShieldCheck, perm: 'roles.read' },
       { to: '/offices', label: 'Offices', icon: Building2, perm: 'offices.read' },
       { to: '/settings/notifications', label: 'Notifications', icon: BellRing, perm: 'settings.read' },
+      { to: '/settings/lead-assignment', label: 'Lead Assignment', icon: Shuffle, perm: 'settings.read' },
     ],
   },
 ];

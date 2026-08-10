@@ -5,6 +5,8 @@ import { buildMeta } from '../../shared/utils/pagination';
 import { leadsRepository } from './leads.repository';
 import { buildLeadScope, type AuthContext } from './leads.scope';
 import { pickRoundRobinAssignee } from './assignment.service';
+import { notificationService } from '../notifications/notification.service';
+import { settingsService } from '../settings/settings.service';
 
 type LeadDetail = NonNullable<Awaited<ReturnType<typeof leadsRepository.findById>>>;
 
@@ -119,7 +121,7 @@ export const leadsService = {
     // Resolve assignee: explicit > auto round-robin > unassigned.
     let assignedToId: string | null = input.assignedToId ?? null;
     let method: 'MANUAL' | 'AUTO_ROUND_ROBIN' = 'MANUAL';
-    if (!assignedToId && (input.autoAssign ?? true)) {
+    if (!assignedToId && (input.autoAssign ?? true) && (await settingsService.autoAssignEnabled())) {
       assignedToId = await pickRoundRobinAssignee(officeId);
       method = 'AUTO_ROUND_ROBIN';
     }
@@ -166,6 +168,12 @@ export const leadsService = {
         subject: 'Lead assigned',
         body: method === 'AUTO_ROUND_ROBIN' ? 'Auto-assigned (round-robin).' : 'Manually assigned.',
       });
+      void notificationService
+        .onLeadAssigned(
+          { id: lead.id, firstName: lead.firstName, lastName: lead.lastName, suburb: lead.suburb },
+          assignedToId,
+        )
+        .catch(() => undefined);
     }
     if (input.notes) {
       await leadsRepository.addNote({ leadId: lead.id, authorId: auth.userId, body: input.notes });
@@ -208,6 +216,7 @@ export const leadsService = {
       method = 'AUTO_ROUND_ROBIN';
       if (!target) throw AppError.badRequest('No active sales reps available to auto-assign');
     }
+    const changedAssignee = Boolean(target) && target !== lead.assignedToId;
 
     const updated = await leadsRepository.update(id, {
       assignedTo: target ? { connect: { id: target } } : { disconnect: true },
@@ -222,6 +231,17 @@ export const leadsService = {
       subject: target ? 'Lead reassigned' : 'Lead unassigned',
       body: method === 'AUTO_ROUND_ROBIN' ? 'Auto-assigned (round-robin).' : undefined,
     });
+
+    // Tell the new owner — matters most when auto-assign is off and leads are
+    // picked up by hand. Fire-and-forget: never fail the assignment on email.
+    if (changedAssignee && target) {
+      void notificationService
+        .onLeadAssigned(
+          { id: lead.id, firstName: lead.firstName, lastName: lead.lastName, suburb: lead.suburb },
+          target,
+        )
+        .catch(() => undefined);
+    }
     return updated;
   },
 

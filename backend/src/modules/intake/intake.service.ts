@@ -4,6 +4,7 @@ import { logger } from '../../core/logger/logger';
 import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
 import { notificationService } from '../notifications/notification.service';
+import { settingsService } from '../settings/settings.service';
 import { parseFieldsSchema, validateSubmission, splitMappedFields, type FieldDescriptor } from '../marketing/formEngine';
 import type {
   AttributionInput,
@@ -144,7 +145,11 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
   const defaultStage =
     (await prisma.pipelineStage.findFirst({ where: { track: 'LEAD', isDefault: true } })) ??
     (await prisma.pipelineStage.findFirst({ where: { track: 'LEAD' }, orderBy: { order: 'asc' } }));
-  const assignedToId = await pickRoundRobinAssignee(null);
+  // Round-robin is admin-toggleable (Administration → Lead Assignment). When
+  // off, captured leads stay unassigned until someone picks them up.
+  const assignedToId = (await settingsService.autoAssignEnabled())
+    ? await pickRoundRobinAssignee(null)
+    : null;
 
   const lead = await prisma.lead.create({
     data: {

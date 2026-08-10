@@ -50,6 +50,7 @@ import {
 } from '../../modules/marketing/marketing.schema';
 import { settingsSchema as notificationSettingsSchema } from '../../modules/notifications/notification.schema';
 import { createProjectSchema, updateProjectSchema } from '../../modules/projects/projects.schema';
+import { leadAssignmentSchema } from '../../modules/settings/settings.routes';
 // Catalog (Phase 6)
 import {
   createProductSchema,
@@ -260,6 +261,10 @@ path({ method: 'delete', path: '/projects/{id}', tag: 'Projects', summary: 'Arch
 path({ method: 'get', path: '/public/projects', tag: 'Public Website', summary: 'PUBLIC: published projects with images[] for the main website (paginated)', auth: false });
 path({ method: 'get', path: '/public/projects/{id}', tag: 'Public Website', summary: 'PUBLIC: one published project', auth: false, params: idParam });
 path({ method: 'get', path: '/public/hero-images', tag: 'Public Website', summary: 'PUBLIC: hero images as { desktop: [], mobile: [] } for the main website', auth: false });
+
+// ═══════════════ Settings ═══════════════
+path({ method: 'get', path: '/settings', tag: 'Settings', summary: 'Read app settings (leadAutoAssign)' });
+path({ method: 'put', path: '/settings/lead-assignment', tag: 'Settings', summary: 'Turn round-robin auto-assignment on/off for new leads', body: leadAssignmentSchema });
 
 // ═══════════════ Notifications (Phase 7) ═══════════════
 path({ method: 'get', path: '/notifications', tag: 'Notifications', summary: 'My in-app feed (?unread=true, paginated; meta.unread = unread count)' });

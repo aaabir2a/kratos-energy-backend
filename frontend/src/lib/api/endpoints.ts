@@ -275,3 +275,12 @@ export const projectsApi = {
       .then((r) => r.data.data);
   },
 };
+
+// ── App settings (Administration) ─────────────────────
+export const settingsApi = {
+  get: () => api.get<ApiSuccess<{ leadAutoAssign: boolean }>>('/settings').then((r) => r.data.data),
+  setLeadAutoAssign: (leadAutoAssign: boolean) =>
+    api
+      .put<ApiSuccess<{ leadAutoAssign: boolean }>>('/settings/lead-assignment', { leadAutoAssign })
+      .then((r) => r.data.data),
+};

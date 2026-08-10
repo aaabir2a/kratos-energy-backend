@@ -19,6 +19,7 @@ import { CustomFormsPage } from '@/features/marketing/CustomFormsPage';
 import { CustomFormEditorPage } from '@/features/marketing/CustomFormEditorPage';
 import { ProjectsPage } from '@/features/projects/ProjectsPage';
 import { NotificationSettingsPage } from '@/features/notifications/NotificationSettingsPage';
+import { LeadAssignmentPage } from '@/features/settings/LeadAssignmentPage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
@@ -122,7 +123,10 @@ export const router = createBrowserRouter([
           },
           {
             element: <RequirePermission perm="settings.read" />,
-            children: [{ path: '/settings/notifications', element: <NotificationSettingsPage /> }],
+            children: [
+              { path: '/settings/notifications', element: <NotificationSettingsPage /> },
+              { path: '/settings/lead-assignment', element: <LeadAssignmentPage /> },
+            ],
           },
         ],
       },
