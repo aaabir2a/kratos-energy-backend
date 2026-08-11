@@ -21,8 +21,9 @@ Phases 1–6 built + verified: auth/RBAC(4 roles: admin/manager/marketing/sales)
 
 ## Databases
 
-- **Active = remote**: `postgresql://kratos:kratos%402026@75.119.149.137:5432/kratos-backend` (password `kratos@2026`, `@`→`%40`). Native Postgres on that host (NOT the chatbot-postgres-1 docker container — its 5432 isn't published). Server admin: `sudo -u postgres psql`.
-- Local fallback: PG17 service, `kratos`/`kratos` db `kratos_crm` (has CREATEDB for shadow).
+- **Active (local dev) = `kratos_dev`**: `postgresql://kratos:kratos@localhost:5432/kratos_dev` on the PG17 service. `backend/.env` points here — **all local testing and feature verification runs against this**, never production. Seeded with the 4 roles, HQ office, stages, sources, blog types, an admin, plus test staff: `sam@`/`riley@` (sales), `morgan@` (manager), `casey@` (marketing) — all `Sales@12345`. Reset any time with `npm run db:reset` (drops, re-migrates, re-seeds).
+- **Remote production**: `postgresql://kratos:kratos%402026@75.119.149.137:5432/kratos-backend` (password `kratos@2026`, `@`→`%40`). Native Postgres on that host (NOT the chatbot-postgres-1 docker container — its 5432 isn't published). Server admin: `sudo -u postgres psql`. Commented out in `backend/.env`; for one-off admin work pass it inline for a single command rather than editing `.env`. The deployed app uses the server's own `backend/.env`.
+- `kratos_crm` is the older local DB (kept as the shadow DB for `migrate diff`).
 - **Migration workflow**: `prisma migrate dev` against LOCAL to generate SQL → `prisma migrate deploy` (reads .env → remote). If migrate dev prompts (non-interactive error): `prisma migrate diff --from-migrations --to-schema-datamodel --shadow-database-url <local shadow db>` into a hand-made migration folder, then deploy. NEVER deploy an empty migration.sql (happened once — always check the SQL exists first).
 - Seed: `npm run db:seed` (idempotent: roles/perms/sources/stages/admin).
 

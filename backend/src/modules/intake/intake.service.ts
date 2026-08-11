@@ -316,6 +316,9 @@ export const intakeService = {
         fields = parseFieldsSchema(globalForm.fieldsSchema);
         formVersion = globalForm.version;
       }
+      // Website submissions still need an origin, otherwise the Origin column
+      // stays blank for every lead from the home/contact form.
+      origin = { source: 'website', formId: globalForm?.id, formTitle: globalForm?.formTitle };
     }
 
     if (fields.length) {
