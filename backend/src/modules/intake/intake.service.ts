@@ -1,11 +1,17 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, type EnquiryType } from '@prisma/client';
 import { prisma } from '../../core/database/prisma';
 import { logger } from '../../core/logger/logger';
 import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
 import { notificationService } from '../notifications/notification.service';
 import { settingsService } from '../settings/settings.service';
-import { parseFieldsSchema, validateSubmission, splitMappedFields, type FieldDescriptor } from '../marketing/formEngine';
+import {
+  parseFieldsSchema,
+  validateSubmission,
+  splitMappedFields,
+  normalizeEnquiryType,
+  type FieldDescriptor,
+} from '../marketing/formEngine';
 import type {
   AttributionInput,
   ChatbotIntakeInput,
@@ -72,6 +78,9 @@ interface CaptureLeadArgs {
     consentMarketing?: boolean;
   };
   attribution: AttributionInput;
+  // Residential vs commercial. Omitted ⇒ the lead falls back to the column
+  // default (RESIDENTIAL), which is where untyped channels land.
+  enquiryType?: EnquiryType;
   customFields?: Record<string, unknown>;
   message?: string;
   rawPayload: unknown;
@@ -172,6 +181,7 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
       roofType: args.contact.roofType,
       estimatedSystemSize: args.contact.estimatedSystemSize,
       consentMarketing: args.contact.consentMarketing ?? false,
+      ...(args.enquiryType ? { enquiryType: args.enquiryType } : {}),
       leadSourceId: sourceId,
       campaignId,
       landingPageId: args.landingPageId ?? undefined,
@@ -281,6 +291,10 @@ export const intakeService = {
     let customFields = input.customFields ?? {};
     let formVersion: number | null = null;
     let fields: FieldDescriptor[] = [];
+    // Residential vs commercial. A marketing form fixes it for every lead it
+    // captures; the global site form lets the visitor pick it via the mapped
+    // enquiry-type field (resolved after validation, below).
+    let formEnquiryType: EnquiryType | null = null;
     // Where this submission came from — persisted below so the CRM leads list
     // can show an Origin badge for custom landing pages / standalone forms.
     let origin: { source: string; formId?: string; formTitle?: string; pageTitle?: string } | null = null;
@@ -292,6 +306,7 @@ export const intakeService = {
       if (!form) throw AppError.badRequest('Unknown or inactive lead form');
       fields = parseFieldsSchema(form.fieldsSchema);
       formVersion = form.version;
+      formEnquiryType = form.enquiryType;
       origin = { source: 'custom_form', formId: form.id, formTitle: form.formTitle };
     } else if (input.landingPageSlug) {
       const page = await prisma.landingPage.findFirst({
@@ -305,6 +320,7 @@ export const intakeService = {
       if (form) {
         fields = parseFieldsSchema(form.fieldsSchema);
         formVersion = form.version;
+        formEnquiryType = form.enquiryType;
       }
     } else {
       // No landing page ⇒ global site form (contact/home).
@@ -315,6 +331,7 @@ export const intakeService = {
       if (globalForm) {
         fields = parseFieldsSchema(globalForm.fieldsSchema);
         formVersion = globalForm.version;
+        formEnquiryType = globalForm.enquiryType;
       }
       // Website submissions still need an origin, otherwise the Origin column
       // stays blank for every lead from the home/contact form.
@@ -370,6 +387,15 @@ export const intakeService = {
       if (input.landingPageSlug && !customFields.page_slug) customFields.page_slug = input.landingPageSlug;
     }
 
+    // A form that fixes its enquiry type wins; otherwise take what the visitor
+    // picked in the mapped field, then the top-level input. Unresolved ⇒ the
+    // column default (RESIDENTIAL).
+    const enquiryType =
+      formEnquiryType ??
+      normalizeEnquiryType(mapped.enquiryType) ??
+      normalizeEnquiryType(input.enquiryType) ??
+      undefined;
+
     const firstName = (mapped.firstName ?? input.firstName)?.trim();
     const email = mapped.email ?? (input.email || undefined);
     const phone = mapped.phone ?? input.phone;
@@ -408,6 +434,7 @@ export const intakeService = {
       landingPageId,
       contact,
       attribution: input,
+      enquiryType,
       customFields,
       message: input.message,
       rawPayload: { ...input, formVersion },

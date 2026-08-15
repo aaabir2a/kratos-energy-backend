@@ -18,8 +18,29 @@ export type FieldType = (typeof FIELD_TYPES)[number];
 // A field may route its submitted value into a core lead column instead of
 // (or as well as) the custom-responses JSON. Lets a CRM-built form fully define
 // the contact form — name/email/phone become mapped fields.
-export const MAP_TARGETS = ['firstName', 'lastName', 'email', 'phone', 'suburb', 'state', 'postcode'] as const;
+export const MAP_TARGETS = [
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'suburb',
+  'state',
+  'postcode',
+  'enquiryType',
+] as const;
 export type MapTarget = (typeof MAP_TARGETS)[number];
+
+// A mapped enquiry-type value arrives as the option label the visitor picked
+// ("Residential", "commercial", "Commercial solar"…). Anything that isn't
+// recognisably commercial is treated as residential.
+export function normalizeEnquiryType(value: unknown): 'RESIDENTIAL' | 'COMMERCIAL' | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim().toLowerCase();
+  if (!v) return null;
+  if (v.startsWith('comm') || v.includes('business') || v.includes('industrial')) return 'COMMERCIAL';
+  if (v.startsWith('res') || v.includes('home') || v.includes('domestic')) return 'RESIDENTIAL';
+  return null;
+}
 
 export const fieldDescriptorSchema = z.object({
   field_name: z

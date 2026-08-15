@@ -41,6 +41,7 @@ export function CustomFormEditorPage() {
   });
 
   const [formTitle, setFormTitle] = useState('');
+  const [enquiryType, setEnquiryType] = useState<'RESIDENTIAL' | 'COMMERCIAL'>('RESIDENTIAL');
   const [submitText, setSubmitText] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [fields, setFields] = useState<FormField[]>([]);
@@ -50,6 +51,7 @@ export function CustomFormEditorPage() {
     const f = formQuery.data;
     if (!f) return;
     setFormTitle(f.formTitle);
+    setEnquiryType(f.enquiryType ?? 'RESIDENTIAL');
     setSubmitText(f.submitButtonText);
     setIsActive(f.isActive);
     setFields(f.fieldsSchema);
@@ -66,6 +68,7 @@ export function CustomFormEditorPage() {
       }));
       return marketingApi.updateForm(id, {
         formTitle,
+        enquiryType,
         submitButtonText: submitText,
         isActive,
         fieldsSchema: cleaned,
@@ -202,6 +205,20 @@ export function CustomFormEditorPage() {
             <div className="space-y-2">
               <Label>Submit Button Text</Label>
               <Input value={submitText} onChange={(e) => setSubmitText(e.target.value)} disabled={!canForm} />
+            </div>
+            <div className="space-y-2">
+              <Label>Enquiry type</Label>
+              <Select
+                value={enquiryType}
+                onChange={(e) => setEnquiryType(e.target.value as 'RESIDENTIAL' | 'COMMERCIAL')}
+                disabled={!canForm}
+              >
+                <option value="RESIDENTIAL">Residential</option>
+                <option value="COMMERCIAL">Commercial</option>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Which Leads tab enquiries from this form land in. Applies to new leads only.
+              </p>
             </div>
           </div>
 

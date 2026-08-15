@@ -31,6 +31,7 @@ export const leadsController = {
       stageId: req.query.stageId as string | undefined,
       status: req.query.status as never,
       priority: req.query.priority as never,
+      enquiryType: req.query.enquiryType as never,
       assignedToId: req.query.assignedToId as string | undefined,
       leadSourceId: req.query.leadSourceId as string | undefined,
       sort: req.query.sort as never,
@@ -40,7 +41,7 @@ export const leadsController = {
   },
 
   async stats(req: Request, res: Response) {
-    ok(res, await leadsService.stats(ctx(req)));
+    ok(res, await leadsService.stats(ctx(req), { enquiryType: req.query.enquiryType as never }));
   },
 
   // Column spec shown in the import dialog.
@@ -81,6 +82,7 @@ export const leadsController = {
       stageId: q.stageId,
       status: q.status as never,
       priority: q.priority as never,
+      enquiryType: q.enquiryType as never,
       assignedToId: q.assignedToId,
       leadSourceId: q.leadSourceId,
       origin: q.origin,
@@ -98,7 +100,7 @@ export const leadsController = {
       [
         'First name', 'Last name', 'Email', 'Phone', 'Secondary phone',
         'Address', 'Suburb', 'State', 'Postcode',
-        'Status', 'Stage', 'Priority', 'Score',
+        'Enquiry type', 'Status', 'Stage', 'Priority', 'Score',
         'Source', 'Origin', 'Landing page / form',
         'Assigned to', 'Assigned email', 'Office',
         'System size', 'Property type', 'Roof type', 'Marketing consent',
@@ -108,7 +110,7 @@ export const leadsController = {
       rows.map((r) => [
         r.firstName, r.lastName, r.email, r.phone, r.secondaryPhone,
         r.addressLine, r.suburb, r.state, r.postcode,
-        r.status, r.stage?.name, r.priority, r.score,
+        r.enquiryType, r.status, r.stage?.name, r.priority, r.score,
         r.source?.name, custom(r, 'lead_source'), custom(r, 'page_title') || custom(r, 'form_title'),
         r.assignedTo ? `${r.assignedTo.firstName} ${r.assignedTo.lastName}`.trim() : '',
         r.assignedTo?.email, r.office?.name,

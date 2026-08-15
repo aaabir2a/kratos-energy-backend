@@ -82,6 +82,7 @@ export interface LeadListParams {
   stageId?: string;
   status?: string;
   priority?: string;
+  enquiryType?: string;
   assignedToId?: string;
   leadSourceId?: string;
   sort?: string;
@@ -90,7 +91,8 @@ export interface LeadListParams {
 export const leadsApi = {
   list: (params: LeadListParams) =>
     api.get<ApiSuccess<LeadListItem[]>>('/leads', { params }).then((r) => r.data),
-  stats: () => api.get<ApiSuccess<LeadStats>>('/leads/stats').then((r) => r.data.data),
+  stats: (params?: { enquiryType?: string }) =>
+    api.get<ApiSuccess<LeadStats>>('/leads/stats', { params }).then((r) => r.data.data),
   get: (id: string) => api.get<ApiSuccess<Lead>>(`/leads/${id}`).then((r) => r.data.data),
   create: (body: Record<string, unknown>) =>
     api.post<ApiSuccess<Lead>>('/leads', body).then((r) => r.data.data),

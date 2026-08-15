@@ -32,12 +32,16 @@ export const updatePageSchema = createPageSchema.partial().extend({
 
 export const createFormSchema = z.object({
   formTitle: z.string().min(1).max(150),
+  // Every lead this form captures is filed under this enquiry type. Required
+  // at creation so no marketing form produces untyped leads.
+  enquiryType: z.enum(['RESIDENTIAL', 'COMMERCIAL']),
   fieldsSchema: fieldsSchemaSchema,
   submitButtonText: z.string().max(60).optional(),
 });
 
 export const updateFormSchema = z.object({
   formTitle: z.string().min(1).max(150).optional(),
+  enquiryType: z.enum(['RESIDENTIAL', 'COMMERCIAL']).optional(),
   fieldsSchema: fieldsSchemaSchema.optional(),
   submitButtonText: z.string().max(60).optional(),
   isActive: z.boolean().optional(),

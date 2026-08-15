@@ -37,6 +37,7 @@ export const leadsService = {
       stageId?: string;
       status?: 'OPEN' | 'CONVERTED' | 'LOST' | 'JUNK';
       priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+      enquiryType?: 'RESIDENTIAL' | 'COMMERCIAL';
       assignedToId?: string;
       leadSourceId?: string;
       sort?: 'createdAt' | 'score' | 'nextFollowUpAt';
@@ -48,6 +49,7 @@ export const leadsService = {
       ...(params.stageId ? { stageId: params.stageId } : {}),
       ...(params.status ? { status: params.status } : {}),
       ...(params.priority ? { priority: params.priority } : {}),
+      ...(params.enquiryType ? { enquiryType: params.enquiryType } : {}),
       ...(params.assignedToId ? { assignedToId: params.assignedToId } : {}),
       ...(params.leadSourceId ? { leadSourceId: params.leadSourceId } : {}),
       ...(params.search
@@ -89,6 +91,7 @@ export const leadsService = {
       propertyType?: string;
       roofType?: string;
       estimatedSystemSize?: string;
+      enquiryType?: 'RESIDENTIAL' | 'COMMERCIAL';
       priority?: 'LOW' | 'MEDIUM' | 'HIGH';
       leadSourceId?: string;
       officeId?: string;
@@ -139,6 +142,7 @@ export const leadsService = {
       propertyType: input.propertyType,
       roofType: input.roofType,
       estimatedSystemSize: input.estimatedSystemSize,
+      enquiryType: input.enquiryType ?? 'RESIDENTIAL',
       priority: input.priority ?? 'MEDIUM',
       leadType: input.leadType,
       consentMarketing: input.consentMarketing ?? false,
@@ -336,6 +340,7 @@ export const leadsService = {
       stageId?: string;
       status?: 'OPEN' | 'CONVERTED' | 'LOST' | 'JUNK';
       priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+      enquiryType?: 'RESIDENTIAL' | 'COMMERCIAL';
       assignedToId?: string;
       leadSourceId?: string;
       origin?: string;
@@ -353,6 +358,7 @@ export const leadsService = {
       ...(params.stageId ? { stageId: params.stageId } : {}),
       ...(params.status ? { status: params.status } : {}),
       ...(params.priority ? { priority: params.priority } : {}),
+      ...(params.enquiryType ? { enquiryType: params.enquiryType } : {}),
       ...(params.assignedToId
         ? params.assignedToId === 'unassigned'
           ? { assignedToId: null }
@@ -393,6 +399,7 @@ export const leadsService = {
         suburb: true,
         state: true,
         postcode: true,
+        enquiryType: true,
         status: true,
         priority: true,
         score: true,
@@ -414,7 +421,11 @@ export const leadsService = {
     });
   },
 
-  stats(auth: AuthContext) {
-    return leadsRepository.stats(buildLeadScope(auth));
+  // Scoped counters. enquiryType narrows them to the tab being viewed.
+  stats(auth: AuthContext, params?: { enquiryType?: 'RESIDENTIAL' | 'COMMERCIAL' }) {
+    return leadsRepository.stats({
+      ...buildLeadScope(auth),
+      ...(params?.enquiryType ? { enquiryType: params.enquiryType } : {}),
+    });
   },
 };

@@ -31,6 +31,10 @@ export const publicSubmitSchema = z
     propertyType: z.string().max(50).optional(),
     roofType: z.string().max(50).optional(),
     estimatedSystemSize: z.string().max(50).optional(),
+    // Residential vs commercial. Free text so the website may post the option
+    // label ("Residential"); normalised in the service. A form's own fixed
+    // enquiry type overrides whatever arrives here.
+    enquiryType: z.string().max(50).optional(),
     message: z.string().max(2000).optional(),
     consentMarketing: z.boolean().optional(),
     sourceSlug: z.string().max(50).optional(), // defaults to "website"

@@ -36,6 +36,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { leadsApi, pipelineApi, usersApi, dealsApi, chatApi } from '@/lib/api/endpoints';
+import type { EnquiryType } from '@/lib/api/types';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate } from '@/lib/utils';
@@ -69,6 +70,7 @@ export function LeadDetailPage() {
   const [editForm, setEditForm] = useState({
     firstName: '', lastName: '', email: '', phone: '', secondaryPhone: '',
     addressLine: '', suburb: '', state: '', postcode: '', estimatedSystemSize: '',
+    enquiryType: 'RESIDENTIAL' as EnquiryType,
   });
 
   const lead = useQuery({ queryKey: ['lead', id], queryFn: () => leadsApi.get(id) });
@@ -140,6 +142,7 @@ export function LeadDetailPage() {
         state: editForm.state || null,
         postcode: editForm.postcode || null,
         estimatedSystemSize: editForm.estimatedSystemSize || null,
+        enquiryType: editForm.enquiryType,
       }),
     onSuccess: () => {
       toast.success('Lead updated');
@@ -162,6 +165,7 @@ export function LeadDetailPage() {
       state: l.state ?? '',
       postcode: l.postcode ?? '',
       estimatedSystemSize: l.estimatedSystemSize ?? '',
+      enquiryType: l.enquiryType,
     });
     setEditOpen(true);
   }
@@ -284,6 +288,17 @@ export function LeadDetailPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Enquiry type</Label>
+              <Select
+                value={editForm.enquiryType}
+                onChange={(e) => setEditForm({ ...editForm, enquiryType: e.target.value as EnquiryType })}
+              >
+                <option value="RESIDENTIAL">Residential</option>
+                <option value="COMMERCIAL">Commercial</option>
+              </Select>
+              <p className="text-xs text-muted-foreground">Moves this lead to the matching tab on the Leads page.</p>
+            </div>
+            <div className="space-y-2">
               <Label>Address</Label>
               <Input value={editForm.addressLine} onChange={(e) => setEditForm({ ...editForm, addressLine: e.target.value })} />
             </div>
@@ -376,6 +391,12 @@ export function LeadDetailPage() {
                 <div>
                   <p className="font-medium text-foreground">{l.source?.name ?? '—'}</p>
                   Source
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">
+                    {l.enquiryType === 'COMMERCIAL' ? 'Commercial' : 'Residential'}
+                  </p>
+                  Enquiry type
                 </div>
               </div>
             </CardContent>

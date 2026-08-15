@@ -209,6 +209,13 @@ enum LeadPriority {
   HIGH
 }
 
+// Residential vs commercial enquiry. Set from the website form's enquiry-type
+// field, or fixed per marketing form. Existing leads default to RESIDENTIAL.
+enum EnquiryType {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
 enum PipelineTrack {
   LEAD
   DEAL
@@ -295,6 +302,7 @@ model Lead {
   roofType            String? @map("roof_type")
   estimatedSystemSize String? @map("estimated_system_size")
 
+  enquiryType    EnquiryType  @default(RESIDENTIAL) @map("enquiry_type")
   status         LeadStatus   @default(OPEN)
   priority       LeadPriority @default(MEDIUM)
   score          Int          @default(0)
@@ -358,6 +366,7 @@ model Lead {
   @@index([assignedToId, stageId])
   @@index([email])
   @@index([phone])
+  @@index([enquiryType])
   @@map("leads")
 }
 
@@ -695,6 +704,10 @@ model CustomLeadForm {
   // Global site form (contact/home on kratos-energy.com) — not tied to a page.
   // Singleton: at most one active global form, enforced in the service layer.
   isGlobal         Boolean  @default(false) @map("is_global")
+  // Fixed enquiry type for every lead this form captures. Chosen when a
+  // marketing form is created. Null on the global site form, where the
+  // visitor picks it via the mapped enquiry-type field instead.
+  enquiryType      EnquiryType? @map("enquiry_type")
   formTitle        String   @map("form_title")
   fieldsSchema     Json     @map("fields_schema")
   version          Int      @default(1)

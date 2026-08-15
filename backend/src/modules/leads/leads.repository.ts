@@ -9,6 +9,7 @@ export const leadListSelect = {
   phone: true,
   suburb: true,
   state: true,
+  enquiryType: true,
   status: true,
   priority: true,
   score: true,

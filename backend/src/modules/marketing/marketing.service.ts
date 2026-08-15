@@ -3,7 +3,7 @@ import { prisma } from '../../core/database/prisma';
 import { AppError } from '../../shared/errors/AppError';
 import { buildMeta } from '../../shared/utils/pagination';
 import { logger } from '../../core/logger/logger';
-import { parseFieldsSchema } from './formEngine';
+import { parseFieldsSchema, normalizeEnquiryType } from './formEngine';
 
 const pageInclude = {
   campaign: { select: { id: true, name: true } },
@@ -94,10 +94,17 @@ export const marketingService = {
     return form;
   },
 
-  async createForm(input: { formTitle: string; fieldsSchema: unknown; submitButtonText?: string; isActive?: boolean }) {
+  async createForm(input: {
+    formTitle: string;
+    enquiryType: 'RESIDENTIAL' | 'COMMERCIAL';
+    fieldsSchema: unknown;
+    submitButtonText?: string;
+    isActive?: boolean;
+  }) {
     return prisma.customLeadForm.create({
       data: {
         formTitle: input.formTitle,
+        enquiryType: input.enquiryType,
         fieldsSchema: input.fieldsSchema as Prisma.InputJsonValue,
         submitButtonText: input.submitButtonText || 'Get my free quote',
         isActive: input.isActive ?? true,
@@ -106,12 +113,22 @@ export const marketingService = {
     });
   },
 
-  async updateForm(formId: string, input: { formTitle?: string; fieldsSchema?: unknown; submitButtonText?: string; isActive?: boolean }) {
+  async updateForm(
+    formId: string,
+    input: {
+      formTitle?: string;
+      enquiryType?: 'RESIDENTIAL' | 'COMMERCIAL';
+      fieldsSchema?: unknown;
+      submitButtonText?: string;
+      isActive?: boolean;
+    },
+  ) {
     const form = await this.getForm(formId);
     return prisma.customLeadForm.update({
       where: { id: formId },
       data: {
         formTitle: input.formTitle,
+        enquiryType: input.enquiryType,
         submitButtonText: input.submitButtonText,
         isActive: input.isActive,
         ...(input.fieldsSchema !== undefined
@@ -155,6 +172,20 @@ export const marketingService = {
     }
     if (!fields.some((f) => f.maps_to === 'email' || f.maps_to === 'phone')) {
       throw AppError.badRequest('Add a field mapped to Email or Phone — leads need a way to be contacted.');
+    }
+    // Residential vs commercial is picked by the visitor on the site form, so
+    // the field must exist and offer both — it decides which Leads tab the
+    // enquiry lands in.
+    const enquiryField = fields.find((f) => f.maps_to === 'enquiryType');
+    if (!enquiryField) {
+      throw AppError.badRequest('Add a field and set “Maps to → Enquiry type” — visitors must choose residential or commercial.');
+    }
+    if (!['select', 'radio'].includes(enquiryField.type)) {
+      throw AppError.badRequest('The Enquiry type field must be a select or radio field.');
+    }
+    const offered = (enquiryField.options ?? []).map((o) => normalizeEnquiryType(o));
+    if (!offered.includes('RESIDENTIAL') || !offered.includes('COMMERCIAL')) {
+      throw AppError.badRequest('The Enquiry type field must offer both a residential and a commercial option.');
     }
 
     const existing = await this.getGlobalForm();

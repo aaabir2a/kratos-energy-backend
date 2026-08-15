@@ -98,6 +98,8 @@ export interface PipelineStage {
   isLost: boolean;
 }
 
+export type EnquiryType = 'RESIDENTIAL' | 'COMMERCIAL';
+
 export interface LeadListItem {
   id: string;
   firstName: string;
@@ -106,6 +108,7 @@ export interface LeadListItem {
   phone: string | null;
   suburb: string | null;
   state: string | null;
+  enquiryType: EnquiryType;
   status: LeadStatus;
   priority: LeadPriority;
   score: number;
@@ -254,7 +257,15 @@ export interface Notification {
   createdAt: string;
 }
 
-export type FieldMapTarget = 'firstName' | 'lastName' | 'email' | 'phone' | 'suburb' | 'state' | 'postcode';
+export type FieldMapTarget =
+  | 'firstName'
+  | 'lastName'
+  | 'email'
+  | 'phone'
+  | 'suburb'
+  | 'state'
+  | 'postcode'
+  | 'enquiryType';
 
 export interface FormField {
   field_name: string;
@@ -272,6 +283,9 @@ export interface FormField {
 export interface LeadForm {
   id: string;
   formTitle: string;
+  // Fixed on marketing forms; null on the global site form, where the visitor
+  // chooses via the field mapped to enquiryType.
+  enquiryType: EnquiryType | null;
   fieldsSchema: FormField[];
   version: number;
   isActive: boolean;

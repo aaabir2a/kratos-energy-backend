@@ -26,7 +26,19 @@ const MAP_OPTIONS: { value: string; label: string }[] = [
   { value: 'suburb', label: 'Core: Suburb' },
   { value: 'state', label: 'Core: State' },
   { value: 'postcode', label: 'Core: Postcode' },
+  { value: 'enquiryType', label: 'Core: Enquiry type' },
 ];
+
+// The website form must let the visitor say whether the enquiry is residential
+// or commercial — it decides which Leads tab the enquiry lands in.
+const ENQUIRY_FIELD: FormField = {
+  field_name: 'enquiry_type',
+  label: 'Enquiry type',
+  type: 'select',
+  required: true,
+  options: ['Residential', 'Commercial'],
+  maps_to: 'enquiryType',
+};
 
 // Shared global lead form used by the home + contact pages on kratos-energy.com.
 // Fields edited here are validated server-side on every public submission and
@@ -95,6 +107,26 @@ export function GlobalFormPage() {
     });
   }
 
+  // Forms built before enquiry type existed often already ask the question as a
+  // plain custom field. Adopt that field — mapping it — rather than appending a
+  // second one the visitor would see twice.
+  function addEnquiryField() {
+    setFields((prev) => {
+      const idx = prev.findIndex(
+        (f) =>
+          !f.maps_to &&
+          ['select', 'radio'].includes(f.type) &&
+          (/enquiry|inquiry/i.test(f.label) || /enquiry|inquiry/i.test(f.field_name)),
+      );
+      if (idx === -1) return [...prev, ENQUIRY_FIELD];
+      const existing = prev[idx];
+      const options = existing.options?.length ? existing.options : ENQUIRY_FIELD.options;
+      return prev.map((f, i) =>
+        i === idx ? { ...f, maps_to: 'enquiryType' as const, required: true, options } : f,
+      );
+    });
+  }
+
   function setOptions(i: number, raw: string) {
     setOptionsText((prev) => ({ ...prev, [i]: raw }));
     updateField(i, { options: raw.split(',').map((s) => s.trim()).filter(Boolean) });
@@ -105,7 +137,14 @@ export function GlobalFormPage() {
   const existing = globalForm.data;
   const hasFirstName = fields.some((f) => f.maps_to === 'firstName' && f.required);
   const hasContact = fields.some((f) => f.maps_to === 'email' || f.maps_to === 'phone');
-  const mappingOk = hasFirstName && hasContact;
+  // Both options must be offered, otherwise every enquiry lands in one tab.
+  const enquiryField = fields.find((f) => f.maps_to === 'enquiryType');
+  const hasEnquiryType =
+    !!enquiryField &&
+    ['select', 'radio'].includes(enquiryField.type) &&
+    (enquiryField.options ?? []).some((o) => /^comm/i.test(o.trim())) &&
+    (enquiryField.options ?? []).some((o) => /^res/i.test(o.trim()));
+  const mappingOk = hasFirstName && hasContact && hasEnquiryType;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -150,9 +189,18 @@ export function GlobalFormPage() {
               and{' '}
               <span className={hasContact ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
                 an Email or Phone field
+              </span>{' '}
+              and{' '}
+              <span className={hasEnquiryType ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                an “Enquiry type” dropdown offering Residential and Commercial
               </span>
               . Everything else is stored as a custom field.
             </p>
+            {!hasEnquiryType && canForm && (
+              <Button variant="outline" size="sm" className="mt-2" onClick={addEnquiryField}>
+                <Plus className="h-4 w-4" /> Add enquiry type field
+              </Button>
+            )}
           </div>
 
           <div className="space-y-3">

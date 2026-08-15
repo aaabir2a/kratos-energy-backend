@@ -43,11 +43,20 @@ const schema = z.object({
   state: z.string().optional(),
   postcode: z.string().optional(),
   estimatedSystemSize: z.string().optional(),
+  enquiryType: z.enum(['RESIDENTIAL', 'COMMERCIAL']),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
   leadSourceId: z.string().optional(),
   autoAssign: z.boolean().optional(),
 });
 type FormValues = z.infer<typeof schema>;
+
+// Leads are split residential / commercial — every lead is one or the other,
+// so this is a tab switch rather than another dropdown filter.
+const ENQUIRY_TABS = [
+  { value: 'RESIDENTIAL', label: 'Residential' },
+  { value: 'COMMERCIAL', label: 'Commercial' },
+] as const;
+type EnquiryTab = (typeof ENQUIRY_TABS)[number]['value'];
 
 function StatCard({ label, value, icon: Icon, tone }: { label: string; value: number | string; icon: React.ElementType; tone: string }) {
   return (
@@ -74,25 +83,31 @@ export function LeadsPage() {
   const [stageId, setStageId] = useState('');
   const [status, setStatus] = useState('');
   const [sourceId, setSourceId] = useState('');
+  const [enquiryType, setEnquiryType] = useState<EnquiryTab>('RESIDENTIAL');
 
-  const stats = useQuery({ queryKey: ['leads', 'stats'], queryFn: () => leadsApi.stats() });
+  const stats = useQuery({
+    queryKey: ['leads', 'stats', enquiryType],
+    queryFn: () => leadsApi.stats({ enquiryType }),
+  });
   const stages = useQuery({ queryKey: ['pipeline', 'stages'], queryFn: () => pipelineApi.stages() });
   const sources = useQuery({ queryKey: ['sources'], queryFn: () => sourcesApi.list() });
   const leads = useQuery({
-    queryKey: ['leads', { search, stageId, status, sourceId }],
+    queryKey: ['leads', { search, stageId, status, sourceId, enquiryType }],
     queryFn: () =>
       leadsApi.list({
         search: search || undefined,
         stageId: stageId || undefined,
         status: status || undefined,
         leadSourceId: sourceId || undefined,
+        enquiryType,
         limit: 50,
       }),
   });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { firstName: '', lastName: '', priority: 'MEDIUM', autoAssign: true },
+    // New leads default to the tab being viewed.
+    defaultValues: { firstName: '', lastName: '', priority: 'MEDIUM', autoAssign: true, enquiryType: 'RESIDENTIAL' },
   });
 
   const create = useMutation({
@@ -124,7 +139,14 @@ export function LeadsPage() {
             <ImportLeadsDialog />
             <ExportLeadsDialog />
             {can('leads.write') && (
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+              open={open}
+              onOpenChange={(v) => {
+                // Opening from a tab means "create one of these".
+                if (v) form.setValue('enquiryType', enquiryType);
+                setOpen(v);
+              }}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4" /> New lead
@@ -176,7 +198,14 @@ export function LeadsPage() {
                       <Input {...form.register('postcode')} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="space-y-2">
+                      <Label>Enquiry type</Label>
+                      <Select {...form.register('enquiryType')}>
+                        <option value="RESIDENTIAL">Residential</option>
+                        <option value="COMMERCIAL">Commercial</option>
+                      </Select>
+                    </div>
                     <div className="space-y-2">
                       <Label>System size</Label>
                       <Input placeholder="6.6kW" {...form.register('estimatedSystemSize')} />
@@ -218,6 +247,27 @@ export function LeadsPage() {
           </div>
         }
       />
+
+      <div className="mb-4 flex w-full max-w-md items-center gap-1 rounded-lg border bg-muted/40 p-1">
+        {ENQUIRY_TABS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            aria-selected={enquiryType === t.value}
+            onClick={() => setEnquiryType(t.value)}
+            className={cn(
+              'flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              enquiryType === t.value
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total leads" value={stats.data?.total ?? '—'} icon={Target} tone="bg-primary/10 text-primary" />

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,6 +30,8 @@ import { formatDate } from '@/lib/utils';
 
 const schema = z.object({
   formTitle: z.string().min(2, 'Required'),
+  // Fixed for the life of the form — every lead it captures is filed here.
+  enquiryType: z.enum(['RESIDENTIAL', 'COMMERCIAL']),
   submitButtonText: z.string().max(60).optional(),
 });
 type FormValues = z.infer<typeof schema>;
@@ -46,13 +49,14 @@ export function CustomFormsPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { formTitle: '', submitButtonText: 'Get my free quote' },
+    defaultValues: { formTitle: '', enquiryType: 'RESIDENTIAL', submitButtonText: 'Get my free quote' },
   });
 
   const create = useMutation({
     mutationFn: (v: FormValues) =>
       marketingApi.createForm({
         formTitle: v.formTitle,
+        enquiryType: v.enquiryType,
         submitButtonText: v.submitButtonText || 'Get my free quote',
         fieldsSchema: [
           {
@@ -116,6 +120,17 @@ export function CustomFormsPage() {
                     )}
                   </div>
                   <div className="space-y-2">
+                    <Label>Enquiry type</Label>
+                    <Select {...form.register('enquiryType')}>
+                      <option value="RESIDENTIAL">Residential</option>
+                      <option value="COMMERCIAL">Commercial</option>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Every lead from this form lands in the {form.watch('enquiryType') === 'COMMERCIAL' ? 'Commercial' : 'Residential'} tab on the
+                      Leads page. You can change it later.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Submit Button Text</Label>
                     <Input placeholder="Get my free quote" {...form.register('submitButtonText')} />
                   </div>
@@ -148,6 +163,7 @@ export function CustomFormsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Form Name</TableHead>
+                <TableHead>Enquiry type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Version</TableHead>
                 <TableHead>Created</TableHead>
@@ -163,6 +179,11 @@ export function CustomFormsPage() {
                   <TableCell>
                     <p className="font-medium">{f.formTitle}</p>
                     <p className="text-xs text-muted-foreground">ID: {f.id}</p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {f.enquiryType === 'COMMERCIAL' ? 'Commercial' : f.enquiryType === 'RESIDENTIAL' ? 'Residential' : 'Visitor picks'}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={f.isActive ? 'success' : 'secondary'}>
