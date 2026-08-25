@@ -140,10 +140,16 @@ export async function verifyMailConfig(): Promise<void> {
   }
   try {
     if (provider === 'resend') {
-      // Cheapest authenticated call that proves the key works.
+      // Cheapest authenticated call that proves the key works. A sending-only
+      // key is refused here ("restricted to only send emails") — that key is
+      // valid for our purposes, so treat it as a pass rather than an error.
       const { error } = await getResend().domains.list();
-      if (error) {
+      if (error && !/restricted/i.test(error.message)) {
         logger.error({ err: error.message }, 'Mail: Resend API key rejected — notification emails will fail');
+        return;
+      }
+      if (error) {
+        logger.info({ from: from() }, 'Mail: Resend ready (send-only key — domain list not permitted)');
         return;
       }
     } else {
