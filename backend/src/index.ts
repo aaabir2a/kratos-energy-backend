@@ -2,6 +2,7 @@ import { env } from './core/config/env';
 import { logger } from './core/logger/logger';
 import { connectDatabase, disconnectDatabase } from './core/database/prisma';
 import { connectRedis, disconnectRedis } from './core/cache/redis';
+import { verifyMailConfig } from './core/mail/mailer';
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
@@ -14,6 +15,10 @@ async function bootstrap(): Promise<void> {
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 ${env.APP_NAME} listening on http://localhost:${env.PORT}${env.API_PREFIX}`);
   });
+
+  // Surfaces a bad API key / SMTP password in the logs at boot instead of
+  // silently losing notification emails for weeks.
+  void verifyMailConfig();
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Shutting down...');

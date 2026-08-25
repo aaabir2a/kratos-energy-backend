@@ -34,8 +34,13 @@ const envSchema = z.object({
   // blocked as mixed content on an HTTPS page. Empty => derive from endpoint.
   MINIO_PUBLIC_BASE_URL: z.string().default(''),
 
-  // Email notifications (Phase 7). Empty SMTP_HOST/USER => email disabled (in-app
-  // notifications still work). Gmail: smtp.gmail.com:587 + a 16-char app password.
+  // Email notifications (Phase 7). Two providers:
+  //   resend — set RESEND_API_KEY (preferred; DKIM/SPF handled by Resend)
+  //   smtp   — set SMTP_HOST/SMTP_USER/SMTP_PASS
+  // Neither configured => email disabled (in-app notifications still work).
+  // 'auto' prefers Resend when its key is present, else falls back to SMTP.
+  MAIL_PROVIDER: z.enum(['auto', 'resend', 'smtp']).default('auto'),
+  RESEND_API_KEY: z.string().default(''),
   SMTP_HOST: z.string().default(''),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z
@@ -44,7 +49,10 @@ const envSchema = z.object({
     .transform((v) => v === 'true'), // true for port 465
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
-  MAIL_FROM: z.string().default(''), // e.g. "Kratos Sustainability <kratossenergy@gmail.com>"
+  // Must be an address on a domain verified with the provider, otherwise the
+  // mail fails SPF/DKIM alignment and lands in spam.
+  // e.g. "Kratos Sustainability <crm@send.kratos-energy.com>"
+  MAIL_FROM: z.string().default(''),
   MAIL_REPLY_TO: z.string().default(''), // optional Reply-To (e.g. info@kratos-energy.com)
   // CRM base URL used to build deep links in emails, e.g. https://crm.kratos-energy.com
   APP_BASE_URL: z.string().default(''),

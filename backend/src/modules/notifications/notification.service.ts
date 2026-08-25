@@ -169,6 +169,8 @@ export const notificationService = {
           `<strong>${name}</strong>${loc} just came in via <strong>${lead.channel}</strong>.`,
           contact ? `Contact: ${contact}` : 'No contact details provided.',
         ], link ? { text: 'View lead', url: link } : undefined),
+        entityRef: lead.id,
+        tag: 'lead.created',
       });
     }
   },
@@ -191,6 +193,8 @@ export const notificationService = {
           `Hi ${rep.firstName},`,
           `<strong>${name}</strong>${lead.suburb ? ` from ${lead.suburb}` : ''} has been assigned to you. Follow up soon.`,
         ], link ? { text: 'Open lead', url: link } : undefined),
+        entityRef: lead.id,
+        tag: 'lead.assigned',
       });
     }
   },
@@ -226,6 +230,8 @@ export const notificationService = {
           `Deal <strong>D-${deal.dealNumber}</strong>${deal.leadName ? ` (${deal.leadName})` : ''} was closed <strong>${label}</strong> at ${amount}.`,
           reason ? `Note: ${reason}` : '',
         ].filter(Boolean), link ? { text: 'View deal', url: link } : undefined),
+        entityRef: deal.id,
+        tag: `deal.${label.toLowerCase()}`,
       });
     }
   },

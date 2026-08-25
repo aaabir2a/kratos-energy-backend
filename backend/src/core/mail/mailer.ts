@@ -1,11 +1,27 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../config/env';
 import { logger } from '../logger/logger';
 
-// Email is optional: with no SMTP host/user configured the app runs fine and
-// simply skips sending (in-app notifications still work).
+// Email is optional: with no provider configured the app runs fine and simply
+// skips sending (in-app notifications still work).
+//
+// Two providers are supported. Resend is preferred — it signs with DKIM and
+// publishes SPF for the verified domain, which is what keeps these out of spam.
+// SMTP is kept as a fallback so an existing deployment keeps working unchanged.
+export type MailProvider = 'resend' | 'smtp' | 'none';
+
+export function mailProvider(): MailProvider {
+  const hasResend = Boolean(env.RESEND_API_KEY);
+  const hasSmtp = Boolean(env.SMTP_HOST && env.SMTP_USER);
+  if (env.MAIL_PROVIDER === 'resend') return hasResend ? 'resend' : 'none';
+  if (env.MAIL_PROVIDER === 'smtp') return hasSmtp ? 'smtp' : 'none';
+  if (hasResend) return 'resend';
+  return hasSmtp ? 'smtp' : 'none';
+}
+
 export function mailConfigured(): boolean {
-  return Boolean(env.SMTP_HOST && env.SMTP_USER);
+  return mailProvider() !== 'none';
 }
 
 let transport: Transporter | null = null;
@@ -21,37 +37,120 @@ function getTransport(): Transporter {
   return transport;
 }
 
+let resendClient: Resend | null = null;
+function getResend(): Resend {
+  if (!resendClient) resendClient = new Resend(env.RESEND_API_KEY);
+  return resendClient;
+}
+
 const from = () => env.MAIL_FROM || env.SMTP_USER;
+
+// Every mail carries a plain-text alternative. A multipart message scores far
+// better with spam filters than HTML alone.
+function toText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<\/(p|div|tr|h1|h2|h3)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&middot;/g, '·')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s*\n\s*\n+/g, '\n\n')
+    .trim();
+}
 
 interface Mail {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
+  // Distinct value per notified entity (e.g. a lead id). Gmail collapses
+  // messages it considers identical; this keeps each alert its own thread.
+  entityRef?: string;
+  // Resend tag for filtering in their dashboard, e.g. 'lead.created'.
+  tag?: string;
 }
 
 // Best-effort send: never throws to the caller (a failed email must not fail the
-// business action). Returns true if handed to the transport.
+// business action). Returns true if the provider accepted the message.
 export async function sendMail(mail: Mail): Promise<boolean> {
   const recipients = (Array.isArray(mail.to) ? mail.to : [mail.to]).filter(Boolean);
   if (!recipients.length) return false;
-  if (!mailConfigured()) {
-    logger.warn({ subject: mail.subject }, 'Email skipped — SMTP not configured');
+
+  const provider = mailProvider();
+  if (provider === 'none') {
+    logger.warn({ subject: mail.subject }, 'Email skipped — no mail provider configured');
     return false;
   }
+
+  const text = mail.text ?? toText(mail.html);
+  const headers: Record<string, string> = {};
+  if (mail.entityRef) headers['X-Entity-Ref-ID'] = mail.entityRef;
+
   try {
+    if (provider === 'resend') {
+      const { data, error } = await getResend().emails.send({
+        from: from(),
+        to: recipients,
+        subject: mail.subject,
+        html: mail.html,
+        text,
+        ...(env.MAIL_REPLY_TO ? { replyTo: env.MAIL_REPLY_TO } : {}),
+        ...(Object.keys(headers).length ? { headers } : {}),
+        ...(mail.tag ? { tags: [{ name: 'type', value: mail.tag.replace(/[^\w-]/g, '_') }] } : {}),
+      });
+      // The SDK reports failures in `error` rather than throwing.
+      if (error) {
+        logger.error({ err: error.message, name: error.name, subject: mail.subject }, 'Email send failed');
+        return false;
+      }
+      logger.info({ messageId: data?.id, to: recipients, provider }, 'Email sent');
+      return true;
+    }
+
     const info = await getTransport().sendMail({
       from: from(),
       to: recipients.join(', '),
       ...(env.MAIL_REPLY_TO ? { replyTo: env.MAIL_REPLY_TO } : {}),
       subject: mail.subject,
       html: mail.html,
-      text: mail.text ?? mail.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      text,
+      ...(Object.keys(headers).length ? { headers } : {}),
     });
-    logger.info({ messageId: info.messageId, to: recipients }, 'Email sent');
+    logger.info({ messageId: info.messageId, to: recipients, provider }, 'Email sent');
     return true;
   } catch (err) {
-    logger.error({ err: (err as Error).message, subject: mail.subject }, 'Email send failed');
+    logger.error({ err: (err as Error).message, subject: mail.subject, provider }, 'Email send failed');
     return false;
+  }
+}
+
+// Startup check so a broken key/password is obvious the same day rather than
+// discovered weeks later through a missing notification. Never throws.
+export async function verifyMailConfig(): Promise<void> {
+  const provider = mailProvider();
+  if (provider === 'none') {
+    logger.warn('Mail: no provider configured — notification emails are disabled (in-app still works)');
+    return;
+  }
+  if (!from()) {
+    logger.error('Mail: MAIL_FROM is empty — set it to an address on your verified domain');
+    return;
+  }
+  try {
+    if (provider === 'resend') {
+      // Cheapest authenticated call that proves the key works.
+      const { error } = await getResend().domains.list();
+      if (error) {
+        logger.error({ err: error.message }, 'Mail: Resend API key rejected — notification emails will fail');
+        return;
+      }
+    } else {
+      await getTransport().verify();
+    }
+    logger.info({ provider, from: from() }, 'Mail: provider ready');
+  } catch (err) {
+    logger.error({ err: (err as Error).message, provider }, 'Mail: provider check failed — notification emails will fail');
   }
 }
