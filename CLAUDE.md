@@ -21,10 +21,33 @@ Phases 1–6 built + verified: auth/RBAC(4 roles: admin/manager/marketing/sales)
 
 ## Databases
 
-- **Active (local dev) = `kratos_dev`**: `postgresql://kratos:kratos@localhost:5432/kratos_dev` on the PG17 service. `backend/.env` points here — **all local testing and feature verification runs against this**, never production. Seeded with the 4 roles, HQ office, stages, sources, blog types, an admin, plus test staff: `sam@`/`riley@` (sales), `morgan@` (manager), `casey@` (marketing) — all `Sales@12345`. Reset any time with `npm run db:reset` (drops, re-migrates, re-seeds).
-- **Remote production**: `postgresql://kratos:kratos%402026@75.119.149.137:5432/kratos-backend` (password `kratos@2026`, `@`→`%40`). Native Postgres on that host (NOT the chatbot-postgres-1 docker container — its 5432 isn't published). Server admin: `sudo -u postgres psql`. Commented out in `backend/.env`; for one-off admin work pass it inline for a single command rather than editing `.env`. The deployed app uses the server's own `backend/.env`.
+Three of them, plus a shadow. Pick deliberately — the wrong one is either a team-wide
+data loss or a production incident.
+
+- **Shared test DB `kratos_test` — what `backend/.env` points at for local work**:
+  `75.119.149.137:5433`, inside the `postgres-db` Docker container (superuser `rag`,
+  shared with another project). A `pg_dump` copy of live: safe to break, but **shared with
+  the team** — your writes are everyone's writes, and the refresh script
+  (`/root/refresh-kratos-test.sh`) is a full drop-and-restore, not a merge. Log in with the
+  copied production accounts. **Local testing only — never wire this into the deployed app.**
+- **Clean local DB `kratos_dev`**: `postgresql://kratos:kratos@localhost:5432/kratos_dev` on
+  the PG17 service. Used to **generate** migrations and for the seeded test staff: `sam@`/`riley@`
+  (sales), `morgan@` (manager), `casey@` (marketing) — all `Sales@12345`.
+  ⚠️ `npm run db:reset` runs `prisma migrate reset --force` against **whatever `DATABASE_URL`
+  currently is** — it has no guard. It is safe only with `kratos_dev` active. Check `.env`
+  before running it, or you will wipe the shared test DB.
+- **Remote production `kratos-backend`**: `75.119.149.137:5432`, **native** Postgres on the VPS
+  (NOT a docker container — the chatbot container's 5432 isn't published). Real customer leads.
+  The `kratos` role there cannot `CREATE DATABASE` (`rolcreatedb=f`); anything needing that goes
+  through the container's `rag` superuser. Credentials live in the server's own
+  `~/kratos/backend/.env` and a password manager — **not in this repo**. For one-off admin work
+  pass the URL inline for a single command rather than editing `.env`.
 - `kratos_crm` is the older local DB (kept as the shadow DB for `migrate diff`).
-- **Migration workflow**: `prisma migrate dev` against LOCAL to generate SQL → `prisma migrate deploy` (reads .env → remote). If migrate dev prompts (non-interactive error): `prisma migrate diff --from-migrations --to-schema-datamodel --shadow-database-url <local shadow db>` into a hand-made migration folder, then deploy. NEVER deploy an empty migration.sql (happened once — always check the SQL exists first).
+- **Migration workflow**: `prisma migrate dev` against **`kratos_dev`** to generate SQL →
+  `prisma migrate deploy` (reads `.env`) to apply. If migrate dev prompts (non-interactive error):
+  `prisma migrate diff --from-migrations --to-schema-datamodel --shadow-database-url <local shadow db>`
+  into a hand-made migration folder, then deploy. NEVER deploy an empty migration.sql (happened
+  once — always check the SQL exists first). 14 migrations as of `ff1b69c`.
 - Seed: `npm run db:seed` (idempotent: roles/perms/sources/stages/admin).
 
 ## Run / test

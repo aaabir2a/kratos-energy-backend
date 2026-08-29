@@ -198,5 +198,11 @@ Only in `backend/.env` (gitignored) and the server's own `~/kratos/backend/.env`
 `.env.example` / `.env.production.example` hold placeholders only — keep it that way; real keys
 have been pasted into an example file before.
 
-Note: `CLAUDE.md` currently contains the production database password in plain text. It's in
-git history. Worth rotating and replacing with a pointer to a password manager.
+**Rotate the production DB password.** It was committed in plain text in *two* tracked files —
+`CLAUDE.md` and `backend/.env.production.example` (the latter contradicting the paragraph above).
+Both are scrubbed at HEAD, but scrubbing does not undo git history: the value is still recoverable
+from any clone, so rotation is the only real fix. Replace with a pointer to the password manager.
+
+The shared test DB (`kratos_test`, role `kratos_test` on :5433) has its own password. It lives in
+`backend/.env` only — keep it out of tracked files, and note it is *not* a low-value credential:
+that DB is a copy of live and contains real customer data.
