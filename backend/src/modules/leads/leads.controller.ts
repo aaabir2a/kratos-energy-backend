@@ -128,7 +128,7 @@ export const leadsController = {
   },
 
   async get(req: Request, res: Response) {
-    ok(res, await leadsService.getById(ctx(req), req.params.id));
+    ok(res, await leadsService.getDetail(ctx(req), req.params.id));
   },
 
   async create(req: Request, res: Response) {

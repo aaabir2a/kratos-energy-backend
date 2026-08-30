@@ -7,8 +7,65 @@ import { buildLeadScope, type AuthContext } from './leads.scope';
 import { pickRoundRobinAssignee } from './assignment.service';
 import { notificationService } from '../notifications/notification.service';
 import { settingsService } from '../settings/settings.service';
+import { parseFieldsSchema } from '../marketing/formEngine';
 
 type LeadDetail = NonNullable<Awaited<ReturnType<typeof leadsRepository.findById>>>;
+
+// Origin markers the intake service stamps onto customFormResponses. They drive
+// the Origin badge, not the visitor's answers, so they stay out of the card.
+const ORIGIN_KEYS = new Set(['lead_source', 'form_id', 'form_title', 'page_title', 'page_slug']);
+
+export interface FormResponse {
+  field: string;
+  label: string;
+  value: string;
+}
+
+// `field_5` means nothing to a rep. Resolve each stored answer back to the
+// label the visitor actually saw, from the form's own fields_schema. Done here
+// rather than in the browser because only admin/marketing hold forms.read —
+// managers and sales reps, who live on this page, would get a 403.
+async function resolveFormResponses(custom: unknown): Promise<FormResponse[]> {
+  if (!custom || typeof custom !== 'object' || Array.isArray(custom)) return [];
+  const entries = Object.entries(custom as Record<string, unknown>).filter(
+    ([k, v]) =>
+      !ORIGIN_KEYS.has(k) &&
+      !k.startsWith('build_') && // rendered by the Build Your System card
+      v !== null &&
+      v !== undefined &&
+      v !== '',
+  );
+  if (!entries.length) return [];
+
+  const formId = (custom as Record<string, unknown>).form_id;
+  const labels = new Map<string, { label: string; order: number }>();
+  if (typeof formId === 'string') {
+    const form = await prisma.customLeadForm.findUnique({
+      where: { id: formId },
+      select: { fieldsSchema: true },
+    });
+    if (form) {
+      for (const f of parseFieldsSchema(form.fieldsSchema)) {
+        labels.set(f.field_name, { label: f.label, order: f.order });
+      }
+    }
+  }
+
+  const humanise = (k: string) => k.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  const asText = (v: unknown) =>
+    Array.isArray(v) ? v.map(String).join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v);
+
+  return entries
+    .map(([field, value]) => ({
+      field,
+      label: labels.get(field)?.label ?? humanise(field),
+      value: asText(value),
+      order: labels.get(field)?.order ?? 999,
+    }))
+    // Schema order first so the card reads like the form did; unknown keys last.
+    .sort((a, b) => a.order - b.order || a.field.localeCompare(b.field))
+    .map(({ field, label, value }) => ({ field, label, value }));
+}
 
 async function getDefaultStageId(): Promise<string | null> {
   const stage =
@@ -74,6 +131,13 @@ export const leadsService = {
     if (!lead) throw AppError.notFound('Lead not found');
     assertVisible(auth, lead);
     return lead;
+  },
+
+  // Detail view only — getById is also the guard for every mutation, and they
+  // don't need the extra form lookup.
+  async getDetail(auth: AuthContext, id: string) {
+    const lead = await this.getById(auth, id);
+    return { ...lead, formResponses: await resolveFormResponses(lead.customFormResponses) };
   },
 
   async create(

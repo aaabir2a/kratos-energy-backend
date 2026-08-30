@@ -42,6 +42,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { initials, formatDate } from '@/lib/utils';
 import { StatusBadge, PriorityDot, StageBadge, fullName } from './leadHelpers';
 import { isBuildLead, OriginBadge, BuildConfigCard } from './buildConfig';
+import { FormResponsesCard } from './FormResponsesCard';
 import type { LeadActivity } from '@/lib/api/types';
 
 const ACTIVITY_ICON: Record<LeadActivity['type'], React.ElementType> = {
@@ -364,6 +365,14 @@ export function LeadDetailPage() {
           {isBuildLead(l.customFormResponses) && l.customFormResponses && (
             <BuildConfigCard custom={l.customFormResponses} />
           )}
+          <FormResponsesCard
+            responses={l.formResponses ?? []}
+            formTitle={
+              typeof l.customFormResponses?.form_title === 'string'
+                ? l.customFormResponses.form_title
+                : null
+            }
+          />
           <Card>
             <CardHeader>
               <CardTitle>Contact</CardTitle>

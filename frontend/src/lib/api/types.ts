@@ -121,7 +121,17 @@ export interface LeadListItem {
   assignedTo: { id: string; firstName: string; lastName: string } | null;
 }
 
+/** One answer from the CRM-built form, resolved back to its schema label. */
+export interface FormResponse {
+  field: string;
+  label: string;
+  value: string;
+}
+
 export interface Lead extends LeadListItem {
+  /** Visitor's form answers, origin markers and build_* payload stripped.
+   *  Only the detail endpoint returns it. */
+  formResponses?: FormResponse[];
   secondaryPhone: string | null;
   addressLine: string | null;
   postcode: string | null;
