@@ -70,6 +70,8 @@ interface Mail {
   entityRef?: string;
   // Resend tag for filtering in their dashboard, e.g. 'lead.created'.
   tag?: string;
+  // Extra headers, e.g. List-Unsubscribe on customer mail.
+  headers?: Record<string, string>;
 }
 
 // Outcome of a send attempt. `ok` is the old boolean return, so existing
@@ -95,7 +97,7 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
   }
 
   const text = mail.text ?? toText(mail.html);
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...mail.headers };
   if (mail.entityRef) headers['X-Entity-Ref-ID'] = mail.entityRef;
 
   try {

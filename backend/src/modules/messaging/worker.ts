@@ -7,6 +7,7 @@ import { messagingSettings } from './messaging.settings';
 import { retryDelayMs } from './timing';
 import { renderTemplate, type MergeData } from './merge';
 import { normaliseAddress } from './outbox.service';
+import { unsubscribeUrl } from './unsubscribe';
 
 // The drain side of the outbox: a plain interval in the API process, not a
 // separate service. The database is the queue (see the build plan) — Redis in
@@ -150,20 +151,27 @@ async function deliver(id: string): Promise<'sent' | 'failed' | 'skipped'> {
   const bodyHtml = message.bodyHtml ?? renderTemplate(source?.bodyHtml ?? '', merge);
   const bodyText = message.bodyText ?? (source?.bodyText ? renderTemplate(source.bodyText, merge, { escape: false }) : undefined);
 
+  // One-click unsubscribe, honoured automatically. Falls back to a monitored
+  // mailbox when APP_BASE_URL is unset and there is no page to link to.
+  const unsubUrl = unsubscribeUrl('EMAIL', address, message.leadId);
+  const unsubHref = unsubUrl ?? `mailto:info@kratos-energy.com?subject=Unsubscribe%20${encodeURIComponent(address)}`;
+
   const result = await sendMail({
     to: address,
     subject: subject || '(no subject)',
     html: emailShell(subject || '', [bodyHtml], undefined, {
       footerNote: 'You are receiving this because you enquired with Kratos Sustainability.',
-      // Interim unsubscribe until the one-click preference page is built:
-      // a monitored mailbox someone actions by hand. The Spam Act requires a
-      // functional unsubscribe facility on commercial mail, so shipping the
-      // send path with none at all is not an option.
-      footerHtml: `<a href="mailto:info@kratos-energy.com?subject=Unsubscribe%20${encodeURIComponent(address)}" style="color:#94a3b8">Unsubscribe</a>`,
+      footerHtml: `<a href="${unsubHref}" style="color:#94a3b8">Unsubscribe</a>`,
     }),
-    text: bodyText,
+    text: bodyText ? `${bodyText}\n\nUnsubscribe: ${unsubHref}` : undefined,
     entityRef: message.leadId ?? id,
     tag: message.templateId ? `template.${message.templateId}` : 'messaging',
+    // RFC 8058: mail clients surface their own unsubscribe control from these,
+    // which keeps people using it instead of reporting the mail as spam.
+    headers: {
+      'List-Unsubscribe': `<${unsubHref}>`,
+      ...(unsubUrl ? { 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } : {}),
+    },
   });
 
   // Keep what was actually sent, so the log is not a guess.

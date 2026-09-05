@@ -58,6 +58,13 @@ const envSchema = z.object({
   APP_BASE_URL: z.string().default(''),
   // Fallback shared recipients for admin notifications (comma-separated) until set in the UI.
   NOTIFY_ADMIN_EMAILS: z.string().default(''),
+  // Signs unsubscribe links. Empty => derived from JWT_ACCESS_SECRET, which
+  // works but means rotating the JWT secret invalidates every link already
+  // sitting in a customer's inbox. Set this separately in production.
+  UNSUBSCRIBE_SECRET: z.string().default(''),
+  // Verifies provider delivery/bounce webhooks. Empty => the endpoint rejects
+  // everything, which is the safe default for an unauthenticated route.
+  MAIL_WEBHOOK_SECRET: z.string().default(''),
 
   // Chatbot platform (CRM_DEVELOPER_GUIDE.md). Key empty => integration disabled.
   CHATBOT_API_BASE: z.string().url().default('https://api.ambrosianuk.com'),

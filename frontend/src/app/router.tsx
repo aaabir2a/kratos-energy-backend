@@ -24,6 +24,7 @@ import { MessageQueuePage } from '@/features/messaging/MessageQueuePage';
 import { MessagingSettingsPage } from '@/features/messaging/MessagingSettingsPage';
 import { TemplateLibraryPage } from '@/features/messaging/TemplateLibraryPage';
 import { TemplateEditorPage } from '@/features/messaging/TemplateEditorPage';
+import { UnsubscribePage } from '@/features/messaging/UnsubscribePage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
@@ -40,6 +41,8 @@ export const router = createBrowserRouter([
   { path: '/403', element: <ForbiddenPage /> },
   // Public landing pages — no auth.
   { path: '/p/:slug', element: <PublicLandingPage /> },
+  // Unsubscribe, reached from an email footer — no auth, no layout.
+  { path: '/unsubscribe/:token', element: <UnsubscribePage /> },
   {
     element: <RequireAuth />,
     children: [

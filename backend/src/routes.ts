@@ -14,6 +14,7 @@ import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.r
 import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
 import { notificationsRouter } from './modules/notifications/notification.routes';
 import { messagingRouter } from './modules/messaging/messaging.routes';
+import { publicMessagingRouter } from './modules/messaging/public.routes';
 import { blogsRouter, publicBlogsRouter } from './modules/blogs/blogs.routes';
 import { projectsRouter, publicProjectsRouter } from './modules/projects/projects.routes';
 import { settingsRouter } from './modules/settings/settings.routes';
@@ -55,6 +56,7 @@ apiRouter.use('/chatbot', chatbotWebhookRouter); // HMAC-verified platform webho
 apiRouter.use('/chatbot', chatbotRouter); // staff chat-inbox API
 apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/messaging', messagingRouter); // templates, sequences, outbox
+apiRouter.use('/public', publicMessagingRouter); // unsubscribe page + mail provider webhook, no auth
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/media', mediaRouter);
 apiRouter.use('/public', publicMediaRouter); // hero images for the main website
