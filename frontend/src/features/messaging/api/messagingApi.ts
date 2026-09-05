@@ -80,3 +80,110 @@ export const messagingApi = {
   updateSettings: (body: Partial<MessagingSettings>) =>
     api.put<ApiSuccess<MessagingSettings>>('/messaging/settings', body).then((r) => r.data.data),
 };
+
+// ── Templates (Stage 3) ───────────────────────────────
+
+export type TemplateCategory = 'REFERRAL' | 'FOLLOW_UP' | 'AFTERCARE' | 'QUOTE' | 'TRANSACTIONAL' | 'OTHER';
+
+export interface MessageTemplateRow {
+  id: string;
+  key: string | null;
+  name: string;
+  category: TemplateCategory;
+  channel: MessageChannel;
+  subject: string | null;
+  currentVersion: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MessageTemplate extends MessageTemplateRow {
+  bodyHtml: string;
+  bodyText: string | null;
+  versions: { id: string; version: number; subject: string | null; createdAt: string }[];
+}
+
+export interface MergeField {
+  field: string;
+  label: string;
+  fallback: string;
+}
+
+export interface TemplatePreview {
+  subject: string | null;
+  bodyHtml: string;
+  bodyText: string | null;
+  sampleData: Record<string, string>;
+}
+
+export interface SendFilters {
+  stageId?: string;
+  status?: string;
+  enquiryType?: string;
+  leadSourceId?: string;
+  search?: string;
+}
+
+export interface SendScreening {
+  total: number;
+  willSend: number;
+  skipped: { noAddress: number; unsubscribed: number };
+}
+
+export interface SendPreview {
+  template: { id: string; name: string; category: TemplateCategory };
+  screening: SendScreening;
+  cap: number | null;
+  sample: { to: string | null; leadName: string; subject: string; bodyHtml: string } | null;
+}
+
+export interface SendResult {
+  batchId: string;
+  queued: number;
+  duplicates: number;
+  skipped: { noAddress: number; unsubscribed: number };
+  scheduledFor: string;
+}
+
+export interface TemplateListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: TemplateCategory;
+  isActive?: 'true' | 'false';
+}
+
+export const templatesApi = {
+  list: (params: TemplateListParams) =>
+    api.get<ApiSuccess<MessageTemplateRow[]>>('/messaging/templates', { params }).then((r) => r.data),
+  get: (id: string) =>
+    api.get<ApiSuccess<MessageTemplate>>(`/messaging/templates/${id}`).then((r) => r.data.data),
+  create: (body: Partial<MessageTemplate>) =>
+    api.post<ApiSuccess<MessageTemplate>>('/messaging/templates', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<MessageTemplate>) =>
+    api.patch<ApiSuccess<MessageTemplate>>(`/messaging/templates/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/messaging/templates/${id}`),
+  duplicate: (id: string) =>
+    api.post<ApiSuccess<MessageTemplate>>(`/messaging/templates/${id}/duplicate`).then((r) => r.data.data),
+  preview: (id: string) =>
+    api.get<ApiSuccess<TemplatePreview>>(`/messaging/templates/${id}/preview`).then((r) => r.data.data),
+  testSend: (id: string) =>
+    api
+      .post<ApiSuccess<{ messageId: string; to: string }>>(`/messaging/templates/${id}/test-send`)
+      .then((r) => r.data.data),
+  mergeFields: () =>
+    api.get<ApiSuccess<MergeField[]>>('/messaging/merge-fields').then((r) => r.data.data),
+};
+
+export const sendApi = {
+  preview: (body: { templateId: string; leadIds?: string[]; filters?: SendFilters }) =>
+    api.post<ApiSuccess<SendPreview>>('/messaging/send/preview', body).then((r) => r.data.data),
+  send: (body: {
+    templateId: string;
+    leadIds?: string[];
+    filters?: SendFilters;
+    scheduledFor?: string;
+    name?: string;
+  }) => api.post<ApiSuccess<SendResult>>('/messaging/send', body).then((r) => r.data.data),
+};

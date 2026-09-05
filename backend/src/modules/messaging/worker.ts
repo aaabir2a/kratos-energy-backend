@@ -59,13 +59,32 @@ async function claim(limit: number): Promise<string[]> {
   return rows.map((r) => r.id);
 }
 
-async function markSent(id: string, providerMessageId?: string) {
+async function markSent(
+  id: string,
+  providerMessageId: string | undefined,
+  lead: { id: string; subject: string } | null,
+) {
   await prisma.$transaction([
     prisma.scheduledMessage.update({
       where: { id },
       data: { status: 'SENT', sentAt: new Date(), providerMessageId: providerMessageId ?? null, lastError: null },
     }),
     prisma.messageEvent.create({ data: { messageId: id, type: 'SENT', detail: providerMessageId } }),
+    // The rep sees automated mail in the same timeline as their own calls and
+    // notes, rather than wondering what the customer has already been sent.
+    ...(lead
+      ? [
+          prisma.leadActivity.create({
+            data: {
+              leadId: lead.id,
+              type: 'EMAIL' as const,
+              subject: lead.subject || 'Email sent',
+              body: 'Sent automatically by the CRM.',
+              metadata: { messageId: id, providerMessageId } as Prisma.InputJsonValue,
+            },
+          }),
+        ]
+      : []),
   ]);
 }
 
@@ -149,7 +168,7 @@ async function deliver(id: string): Promise<'sent' | 'failed' | 'skipped'> {
   });
 
   if (result.ok) {
-    await markSent(id, result.messageId);
+    await markSent(id, result.messageId, message.leadId ? { id: message.leadId, subject } : null);
     return 'sent';
   }
   await markFailed(id, message.attempts, result.error ?? 'send failed');

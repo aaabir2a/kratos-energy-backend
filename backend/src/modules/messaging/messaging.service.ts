@@ -83,6 +83,22 @@ export const messagingService = {
     return messagingRepository.updateTemplate(id, { ...input }, contentChanged);
   },
 
+  /** Copy a template. The copy starts inactive so a half-edited duplicate
+   *  cannot be sent by accident from the library. */
+  async duplicateTemplate(id: string, userId: string) {
+    const source = await this.getTemplate(id);
+    return messagingRepository.createTemplate({
+      name: `${source.name} (copy)`,
+      category: source.category,
+      channel: source.channel,
+      subject: source.subject,
+      bodyHtml: source.bodyHtml,
+      bodyText: source.bodyText,
+      isActive: false,
+      createdById: userId,
+    });
+  },
+
   async deleteTemplate(id: string) {
     await this.getTemplate(id);
     return messagingRepository.softDeleteTemplate(id);

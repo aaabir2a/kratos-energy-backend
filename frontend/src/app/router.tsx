@@ -22,6 +22,8 @@ import { NotificationSettingsPage } from '@/features/notifications/NotificationS
 import { LeadAssignmentPage } from '@/features/settings/LeadAssignmentPage';
 import { MessageQueuePage } from '@/features/messaging/MessageQueuePage';
 import { MessagingSettingsPage } from '@/features/messaging/MessagingSettingsPage';
+import { TemplateLibraryPage } from '@/features/messaging/TemplateLibraryPage';
+import { TemplateEditorPage } from '@/features/messaging/TemplateEditorPage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
@@ -62,7 +64,11 @@ export const router = createBrowserRouter([
           },
           {
             element: <RequirePermission perm="messaging.read" />,
-            children: [{ path: '/messaging/queue', element: <MessageQueuePage /> }],
+            children: [
+              { path: '/messaging/queue', element: <MessageQueuePage /> },
+              { path: '/messaging/templates', element: <TemplateLibraryPage /> },
+              { path: '/messaging/templates/:id', element: <TemplateEditorPage /> },
+            ],
           },
           {
             element: <RequirePermission perm="deals.read" />,

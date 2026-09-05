@@ -21,6 +21,7 @@ import {
   Hammer,
   Shuffle,
   SendHorizonal,
+  Mails,
   Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/chat', label: 'Chat Inbox', icon: MessageSquare, perm: 'leads.read' },
       { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
       { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
+      { to: '/messaging/templates', label: 'Email Templates', icon: Mails, perm: 'messaging.read' },
       { to: '/messaging/queue', label: 'Send Queue', icon: SendHorizonal, perm: 'messaging.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },
       { to: '/marketing', label: 'Landing Pages', icon: Megaphone, perm: 'landing_pages.read' },

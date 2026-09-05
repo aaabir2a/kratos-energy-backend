@@ -8,6 +8,7 @@ import { resolvePage, buildMeta } from '../../shared/utils/pagination';
 import { audit } from '../../shared/utils/audit';
 import { messagingService } from './messaging.service';
 import { queueService } from './queue.service';
+import { sendService } from './send.service';
 import { tick } from './worker';
 import {
   createTemplateSchema,
@@ -16,6 +17,8 @@ import {
   listQueueQuerySchema,
   updateSettingsSchema,
   cancelSchema,
+  sendPreviewSchema,
+  sendSchema,
   idParamSchema,
 } from './messaging.schema';
 
@@ -178,4 +181,52 @@ messagingRouter.post(
   '/queue/run',
   requirePermission('messaging.send'),
   asyncHandler(async (_req, res) => ok(res, await tick())),
+);
+
+// ── Manual send (Stage 3) ─────────────────────────────
+
+// Copy a template — the usual way a new one starts.
+messagingRouter.post(
+  '/templates/:id/duplicate',
+  requirePermission('messaging.write'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) =>
+    created(res, await messagingService.duplicateTemplate(req.params.id, req.auth!.userId)),
+  ),
+);
+
+// Send one to yourself to see how it looks. Bypasses quiet hours, since the
+// operator is sitting there waiting for it.
+messagingRouter.post(
+  '/templates/:id/test-send',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sendService.testSend(req.auth!, req.params.id))),
+);
+
+// What the confirm step shows: who is in, who was dropped and why, and the
+// message rendered for the first real recipient.
+messagingRouter.post(
+  '/send/preview',
+  requirePermission('messaging.send'),
+  validate({ body: sendPreviewSchema }),
+  asyncHandler(async (req, res) => ok(res, await sendService.preview(req.auth!, req.body))),
+);
+
+messagingRouter.post(
+  '/send',
+  requirePermission('messaging.send'),
+  validate({ body: sendSchema }),
+  asyncHandler(async (req, res) => {
+    const result = await sendService.send(req.auth!, req.body);
+    await audit({
+      userId: req.auth?.userId,
+      action: 'messaging.send_batch',
+      entityType: 'send_batch',
+      entityId: result.batchId,
+      after: { queued: result.queued, templateId: req.body.templateId },
+      ip: req.ip,
+    });
+    created(res, result);
+  }),
 );

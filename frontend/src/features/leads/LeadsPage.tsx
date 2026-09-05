@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Loader2, Search, Target, Users2, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Loader2, Search, Target, Users2, CheckCircle2, XCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import { StageBadge, StatusBadge, PriorityDot, fullName } from './leadHelpers';
 import { OriginBadge } from './buildConfig';
 import { ExportLeadsDialog } from './ExportLeadsDialog';
 import { ImportLeadsDialog } from './ImportLeadsDialog';
+import { SendEmailDialog } from '@/features/messaging/SendEmailDialog';
 
 const AU_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'] as const;
 
@@ -76,6 +77,7 @@ function StatCard({ label, value, icon: Icon, tone }: { label: string; value: nu
 
 export function LeadsPage() {
   const { can } = usePermissions();
+  const canSendEmail = can('messaging.send');
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -84,6 +86,11 @@ export function LeadsPage() {
   const [status, setStatus] = useState('');
   const [sourceId, setSourceId] = useState('');
   const [enquiryType, setEnquiryType] = useState<EnquiryTab>('RESIDENTIAL');
+  // Multi-select for bulk email. Ids only — the rows themselves come and go
+  // as filters change.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendAllMatching, setSendAllMatching] = useState(false);
 
   const stats = useQuery({
     queryKey: ['leads', 'stats', enquiryType],
@@ -128,6 +135,40 @@ export function LeadsPage() {
   });
 
   const data = leads.data?.data ?? [];
+  const matchingTotal = leads.data?.meta?.total ?? data.length;
+  const pageIds = data.map((l) => l.id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const togglePage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+  const clearSelection = () => {
+    setSelected(new Set());
+    setSendAllMatching(false);
+  };
+
+  // Current filters, in the shape the send endpoint expects. Used when
+  // sending to everyone matching rather than to ticked rows.
+  const currentFilters = {
+    ...(search ? { search } : {}),
+    ...(stageId ? { stageId } : {}),
+    ...(status ? { status } : {}),
+    ...(sourceId ? { leadSourceId: sourceId } : {}),
+    enquiryType,
+  };
 
   return (
     <div>
@@ -321,6 +362,17 @@ export function LeadsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                {canSendEmail && (
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      aria-label="Select all on this page"
+                      checked={allOnPageSelected}
+                      onChange={togglePage}
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Lead</TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>Status</TableHead>
@@ -334,6 +386,17 @@ export function LeadsPage() {
             <TableBody>
               {data.map((l) => (
                 <TableRow key={l.id} className="cursor-pointer" onClick={() => navigate(`/leads/${l.id}`)}>
+                  {canSendEmail && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        aria-label={`Select ${l.firstName} ${l.lastName}`}
+                        checked={selected.has(l.id)}
+                        onChange={() => toggleOne(l.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <p className="font-medium">
                       {l.firstName} {l.lastName}
@@ -375,6 +438,49 @@ export function LeadsPage() {
           </Table>
         )}
       </Card>
+
+      {/* Sticky action bar — only once something is selected, so it never
+          occupies space it has not earned. */}
+      {canSendEmail && selected.size > 0 && (
+        <div className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3 shadow-lg">
+          <span className="text-sm font-medium">
+            {selected.size} lead{selected.size === 1 ? '' : 's'} selected
+          </span>
+          {allOnPageSelected && matchingTotal > selected.size && (
+            <button
+              type="button"
+              className="text-sm text-primary hover:underline"
+              onClick={() => {
+                setSendAllMatching(true);
+                setSendOpen(true);
+              }}
+            >
+              Send to all {matchingTotal} matching these filters
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setSendAllMatching(false);
+                setSendOpen(true);
+              }}
+            >
+              <Mail className="h-4 w-4" /> Send email
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <SendEmailDialog
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        {...(sendAllMatching ? { filters: currentFilters } : { leadIds: [...selected] })}
+        onSent={clearSelection}
+      />
     </div>
   );
 }

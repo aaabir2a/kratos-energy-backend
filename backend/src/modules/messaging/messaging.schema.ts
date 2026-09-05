@@ -88,3 +88,36 @@ export const cancelSchema = z.object({ reason: z.string().max(200).optional() })
 
 export type ListQueueQuery = z.infer<typeof listQueueQuerySchema>;
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+
+// ── Manual send (Stage 3) ─────────────────────────────
+
+// The subset of lead filters a send can target. Deliberately the same names
+// the leads list uses, so "send to everyone matching this view" means exactly
+// what the user is looking at.
+export const sendFiltersSchema = z.object({
+  stageId: z.string().uuid().optional(),
+  status: z.enum(['OPEN', 'CONVERTED', 'LOST', 'JUNK']).optional(),
+  enquiryType: z.enum(['RESIDENTIAL', 'COMMERCIAL']).optional(),
+  leadSourceId: z.string().uuid().optional(),
+  assignedToId: z.string().uuid().optional(),
+  search: z.string().optional(),
+});
+
+export const sendPreviewSchema = z
+  .object({
+    templateId: z.string().uuid(),
+    leadIds: z.array(z.string().uuid()).max(2000).optional(),
+    filters: sendFiltersSchema.optional(),
+  })
+  .refine((v) => (v.leadIds?.length ?? 0) > 0 || v.filters !== undefined, {
+    message: 'Choose some leads, or a filter, to send to',
+  });
+
+export const sendSchema = sendPreviewSchema.innerType().extend({
+  name: z.string().max(160).optional(),
+  /** Omit to send as soon as the sending window allows. */
+  scheduledFor: z.string().datetime().optional(),
+});
+
+export type SendPreviewInput = z.infer<typeof sendPreviewSchema>;
+export type SendInput = z.infer<typeof sendSchema>;
