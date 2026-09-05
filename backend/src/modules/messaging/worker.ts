@@ -155,6 +155,11 @@ async function deliver(id: string): Promise<'sent' | 'failed' | 'skipped'> {
     subject: subject || '(no subject)',
     html: emailShell(subject || '', [bodyHtml], undefined, {
       footerNote: 'You are receiving this because you enquired with Kratos Sustainability.',
+      // Interim unsubscribe until the one-click preference page is built:
+      // a monitored mailbox someone actions by hand. The Spam Act requires a
+      // functional unsubscribe facility on commercial mail, so shipping the
+      // send path with none at all is not an option.
+      footerHtml: `<a href="mailto:info@kratos-energy.com?subject=Unsubscribe%20${encodeURIComponent(address)}" style="color:#94a3b8">Unsubscribe</a>`,
     }),
     text: bodyText,
     entityRef: message.leadId ?? id,
