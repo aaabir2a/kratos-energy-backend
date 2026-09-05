@@ -44,3 +44,47 @@ export const listTemplatesQuerySchema = z.object({
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
 export type ListTemplatesQuery = z.infer<typeof listTemplatesQuerySchema>;
+
+// ── Queue (Stage 1) ───────────────────────────────────
+export const MESSAGE_STATUSES = ['PENDING', 'SENDING', 'SENT', 'FAILED', 'CANCELLED', 'SKIPPED'] as const;
+
+export const listQueueQuerySchema = z.object({
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+  status: z.enum(MESSAGE_STATUSES).optional(),
+  channel: z.enum(MESSAGE_CHANNELS).optional(),
+  batchId: z.string().uuid().optional(),
+  leadId: z.string().uuid().optional(),
+  search: z.string().optional(),
+  /** Only messages still to go out. The queue screen's default view. */
+  dueOnly: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+});
+
+export const sendingWindowSchema = z.object({
+  quietStartHour: z.number().int().min(0).max(23),
+  quietEndHour: z.number().int().min(0).max(23),
+  businessDaysOnly: z.boolean(),
+  timezone: z.string().min(1).max(64),
+});
+
+export const updateSettingsSchema = z
+  .object({
+    sendingPaused: z.boolean().optional(),
+    sendingWindow: sendingWindowSchema.optional(),
+    throttlePerHour: z.number().int().min(1).max(10000).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+
+// A window that opens after it closes would silently mean "never send".
+export const validatedWindowSchema = sendingWindowSchema.refine(
+  (w) => w.quietEndHour < w.quietStartHour,
+  { message: 'Sending must open before it closes (quietEndHour < quietStartHour)' },
+);
+
+export const cancelSchema = z.object({ reason: z.string().max(200).optional() });
+
+export type ListQueueQuery = z.infer<typeof listQueueQuerySchema>;
+export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;

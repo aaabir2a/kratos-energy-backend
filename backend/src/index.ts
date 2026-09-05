@@ -20,8 +20,15 @@ async function bootstrap(): Promise<void> {
   // silently losing notification emails for weeks.
   void verifyMailConfig();
 
+  // Drains the messaging outbox on an interval. No separate process: the
+  // database is the queue, and the claim uses SKIP LOCKED so a second
+  // container would divide the work rather than duplicate it.
+  const { startWorker, stopWorker } = await import('./modules/messaging/worker');
+  startWorker();
+
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'Shutting down...');
+    stopWorker();
     server.close();
     await disconnectDatabase();
     await disconnectRedis();

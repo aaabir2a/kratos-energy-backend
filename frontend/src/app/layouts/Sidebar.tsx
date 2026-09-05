@@ -20,6 +20,8 @@ import {
   LayoutList,
   Hammer,
   Shuffle,
+  SendHorizonal,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -44,6 +46,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/chat', label: 'Chat Inbox', icon: MessageSquare, perm: 'leads.read' },
       { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
       { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
+      { to: '/messaging/queue', label: 'Send Queue', icon: SendHorizonal, perm: 'messaging.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },
       { to: '/marketing', label: 'Landing Pages', icon: Megaphone, perm: 'landing_pages.read' },
       { to: '/marketing/forms', label: 'Lead Forms', icon: FormInput, perm: 'forms.read' },
@@ -75,6 +78,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/offices', label: 'Offices', icon: Building2, perm: 'offices.read' },
       { to: '/settings/notifications', label: 'Notifications', icon: BellRing, perm: 'settings.read' },
       { to: '/settings/lead-assignment', label: 'Lead Assignment', icon: Shuffle, perm: 'settings.read' },
+      { to: '/settings/messaging', label: 'Sending Rules', icon: Clock, perm: 'settings.read' },
     ],
   },
 ];
