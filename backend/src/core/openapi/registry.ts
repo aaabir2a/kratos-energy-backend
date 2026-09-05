@@ -50,6 +50,12 @@ import {
 } from '../../modules/marketing/marketing.schema';
 import { settingsSchema as notificationSettingsSchema } from '../../modules/notifications/notification.schema';
 import { createProjectSchema, updateProjectSchema } from '../../modules/projects/projects.schema';
+// Messaging (Stage 0)
+import {
+  createTemplateSchema,
+  updateTemplateSchema,
+  listTemplatesQuerySchema,
+} from '../../modules/messaging/messaging.schema';
 import { leadAssignmentSchema } from '../../modules/settings/settings.routes';
 // Catalog (Phase 6)
 import {
@@ -284,6 +290,15 @@ path({ method: 'put', path: '/notifications/settings', tag: 'Notifications', sum
 path({ method: 'get', path: '/campaigns', tag: 'Campaigns', summary: 'Campaign performance (leads + cost-per-lead)' });
 path({ method: 'post', path: '/campaigns', tag: 'Campaigns', summary: 'Create campaign', body: createCampaignSchema, created: true });
 path({ method: 'patch', path: '/campaigns/{id}', tag: 'Campaigns', summary: 'Update campaign', params: idParam, body: updateCampaignSchema });
+
+// ═══════════════ Messaging (Stage 0) ═══════════════
+path({ method: 'get', path: '/messaging/merge-fields', tag: 'Messaging', summary: 'Merge fields available to templates' });
+path({ method: 'get', path: '/messaging/templates', tag: 'Messaging', summary: 'List email/SMS templates', query: listTemplatesQuerySchema });
+path({ method: 'post', path: '/messaging/templates', tag: 'Messaging', summary: 'Create template', body: createTemplateSchema, created: true });
+path({ method: 'get', path: '/messaging/templates/{id}', tag: 'Messaging', summary: 'Get template with recent versions', params: idParam });
+path({ method: 'get', path: '/messaging/templates/{id}/preview', tag: 'Messaging', summary: 'Render template with sample data', params: idParam });
+path({ method: 'patch', path: '/messaging/templates/{id}', tag: 'Messaging', summary: 'Update template (publishes a version when content changes)', params: idParam, body: updateTemplateSchema });
+path({ method: 'delete', path: '/messaging/templates/{id}', tag: 'Messaging', summary: 'Archive template (soft delete)', params: idParam });
 
 export function buildOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(registry.definitions);

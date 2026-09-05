@@ -19,7 +19,7 @@ async function main(): Promise<void> {
   console.log(`reply-to : ${env.MAIL_REPLY_TO || '(none)'}`);
   await verifyMailConfig();
 
-  const ok = await sendMail({
+  const result = await sendMail({
     to,
     subject: 'Kratos CRM — test notification',
     html: `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px">
@@ -31,8 +31,8 @@ async function main(): Promise<void> {
     tag: 'test',
   });
 
-  console.log(ok ? '✅ accepted by provider' : '❌ not sent — see the error above');
-  process.exit(ok ? 0 : 1);
+  console.log(result.ok ? `✅ accepted by provider (id: ${result.messageId ?? 'n/a'})` : '❌ not sent — see the error above');
+  process.exit(result.ok ? 0 : 1);
 }
 
 void main();

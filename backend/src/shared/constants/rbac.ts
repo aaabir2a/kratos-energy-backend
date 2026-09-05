@@ -26,6 +26,8 @@ export const PERMISSIONS = [
   'projects.read', 'projects.write',
   // blogs (Blog Module)
   'blogs.read', 'blogs.write',
+  // messaging (Stage 0 — templates, sequences, outbox)
+  'messaging.read', 'messaging.write', 'messaging.send',
   // analytics (Phase 8)
   'analytics.read',
 ] as const;
@@ -60,6 +62,7 @@ export const ROLE_DEFINITIONS: Record<
       'pipeline.read', 'pipeline.write', 'activities.read', 'activities.write',
       'deals.read', 'deals.write', 'deals.close', 'deals.approve',
       'catalog.read', 'sources.read', 'analytics.read',
+      'messaging.read', 'messaging.write', 'messaging.send',
       'projects.read',
     ],
   },
@@ -74,6 +77,7 @@ export const ROLE_DEFINITIONS: Record<
       'leads.read', 'leads.export',
       'analytics.read',
       'blogs.read', 'blogs.write',
+      'messaging.read', 'messaging.write', 'messaging.send',
       'projects.read', 'projects.write',
     ],
   },
@@ -85,6 +89,8 @@ export const ROLE_DEFINITIONS: Record<
       'pipeline.read', 'activities.read', 'activities.write',
       'deals.read', 'deals.write', 'deals.close',
       'catalog.read',
+      // Reps can use templates and send, but not author or edit them.
+      'messaging.read', 'messaging.send',
     ],
   },
 };

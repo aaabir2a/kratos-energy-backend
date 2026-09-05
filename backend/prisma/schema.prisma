@@ -356,6 +356,13 @@ model Lead {
   // Chatbot integration
   chatConversations ChatConversation[]
 
+  // Messaging (Stage 0)
+  sequenceEnrolments SequenceEnrolment[]
+  scheduledMessages  ScheduledMessage[]
+  campaignHolds      CampaignHold[]
+  referralsMade      Referral[]          @relation("ReferrerLead")
+  referralSource     Referral?           @relation("ReferredLead")
+
   @@index([campaignId])
   @@index([officeId])
   @@index([stageId])
@@ -602,6 +609,11 @@ model Deal {
 
   items        DealItem[]
   stageHistory DealStageHistory[]
+
+  // Messaging (Stage 0)
+  sequenceEnrolments SequenceEnrolment[]
+  scheduledMessages  ScheduledMessage[]
+  referrals          Referral[]
 
   @@index([leadId])
   @@index([ownerId, stageId])
@@ -997,4 +1009,391 @@ model Project {
 
   @@index([isPublished, sortOrder])
   @@map("projects")
+}
+
+// ═════════════════════════════════════════════════════════════
+// MESSAGING — templates, sequences, outbox, campaigns
+// Stage 0 of the messaging build. Every message-bearing table
+// carries `channel` from the first migration so SMS can be added
+// later without a schema rewrite.
+// ═════════════════════════════════════════════════════════════
+
+enum MessageChannel {
+  EMAIL
+  SMS
+}
+
+enum TemplateCategory {
+  REFERRAL
+  FOLLOW_UP
+  AFTERCARE
+  QUOTE
+  TRANSACTIONAL
+  OTHER
+}
+
+enum SequenceTrigger {
+  LEAD_CREATED
+  DEAL_STAGE_CHANGED
+  DEAL_WON
+  DEAL_LOST
+  CAMPAIGN
+  MANUAL
+}
+
+enum EnrolmentStatus {
+  ACTIVE
+  HELD
+  COMPLETED
+  CANCELLED
+}
+
+// PENDING -> SENDING -> SENT | FAILED. CANCELLED by a stop rule or an
+// operator; SKIPPED when the recipient was suppressed at claim time.
+enum MessageStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+  SKIPPED
+}
+
+enum MessageEventType {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  COMPLAINED
+  FAILED
+  UNSUBSCRIBED
+}
+
+enum SuppressionReason {
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+  MANUAL
+}
+
+enum VoucherStatus {
+  PENDING
+  QUALIFIED
+  PAID
+  VOID
+}
+
+// Reusable copy. Editing publishes a new TemplateVersion; sent messages keep
+// pointing at the version that actually went out.
+model MessageTemplate {
+  id             String           @id @default(uuid()) @db.Uuid
+  key            String?          @unique // stable handle for seeded templates
+  name           String
+  category       TemplateCategory @default(OTHER)
+  channel        MessageChannel   @default(EMAIL)
+  subject        String? // email only
+  bodyHtml       String           @map("body_html")
+  bodyText       String?          @map("body_text")
+  currentVersion Int              @default(1) @map("current_version")
+  isActive       Boolean          @default(true) @map("is_active")
+  createdById    String?          @map("created_by") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
+
+  versions TemplateVersion[]
+  steps    SequenceStep[]
+  messages ScheduledMessage[]
+  batches  SendBatch[]
+
+  @@index([category, isActive])
+  @@index([channel])
+  @@map("message_templates")
+}
+
+model TemplateVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  templateId  String   @map("template_id") @db.Uuid
+  version     Int
+  subject     String?
+  bodyHtml    String   @map("body_html")
+  bodyText    String?  @map("body_text")
+  createdById String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  template MessageTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  messages ScheduledMessage[]
+
+  @@unique([templateId, version])
+  @@map("template_versions")
+}
+
+model MessageSequence {
+  id          String          @id @default(uuid()) @db.Uuid
+  key         String?         @unique
+  name        String
+  description String?
+  trigger     SequenceTrigger
+  channel     MessageChannel  @default(EMAIL)
+  isActive    Boolean         @default(false) @map("is_active")
+  // Enrolment conditions, e.g. { "enquiryType": "COMMERCIAL", "sourceIds": [...] }
+  filters     Json?
+
+  // Stop rules. Unsubscribe always stops a sequence and is not configurable.
+  stopOnReply       Boolean @default(true) @map("stop_on_reply")
+  stopOnStageChange Boolean @default(true) @map("stop_on_stage_change")
+  stopOnConvert     Boolean @default(true) @map("stop_on_convert")
+
+  createdById String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  steps      SequenceStep[]
+  enrolments SequenceEnrolment[]
+  campaigns  MessageCampaign[]
+
+  @@index([trigger, isActive])
+  @@map("message_sequences")
+}
+
+model SequenceStep {
+  id         String @id @default(uuid()) @db.Uuid
+  sequenceId String @map("sequence_id") @db.Uuid
+  templateId String @map("template_id") @db.Uuid
+  position   Int
+
+  // Offset from enrolment, not from the previous step — so editing one delay
+  // cannot silently shift everything after it.
+  delayMinutes Int            @map("delay_minutes")
+  channel      MessageChannel @default(EMAIL)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sequence MessageSequence    @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  template MessageTemplate    @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  messages ScheduledMessage[]
+
+  @@unique([sequenceId, position])
+  @@index([templateId])
+  @@map("sequence_steps")
+}
+
+model SequenceEnrolment {
+  id           String          @id @default(uuid()) @db.Uuid
+  sequenceId   String          @map("sequence_id") @db.Uuid
+  leadId       String          @map("lead_id") @db.Uuid
+  dealId       String?         @map("deal_id") @db.Uuid
+  campaignId   String?         @map("campaign_id") @db.Uuid
+  status       EnrolmentStatus @default(ACTIVE)
+  currentStep  Int             @default(0) @map("current_step")
+  holdReason   String?         @map("hold_reason")
+  heldAt       DateTime?       @map("held_at") @db.Timestamptz(6)
+  releasedAt   DateTime?       @map("released_at") @db.Timestamptz(6)
+  completedAt  DateTime?       @map("completed_at") @db.Timestamptz(6)
+  cancelledAt  DateTime?       @map("cancelled_at") @db.Timestamptz(6)
+  cancelReason String?         @map("cancel_reason")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sequence MessageSequence    @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  lead     Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  deal     Deal?              @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  campaign MessageCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  messages ScheduledMessage[]
+
+  @@index([sequenceId, status])
+  @@index([leadId])
+  @@index([campaignId])
+  @@map("sequence_enrolments")
+}
+
+// One bulk send: a template, an audience and the messages it produced.
+model SendBatch {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String?
+  templateId   String?        @map("template_id") @db.Uuid
+  channel      MessageChannel @default(EMAIL)
+  totalCount   Int            @default(0) @map("total_count")
+  skippedCount Int            @default(0) @map("skipped_count")
+
+  // Why recipients were dropped, e.g. { "unsubscribed": 2, "noAddress": 1 }
+  skipReasons  Json?     @map("skip_reasons")
+  scheduledFor DateTime? @map("scheduled_for") @db.Timestamptz(6)
+  cancelledAt  DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  createdById  String?   @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  template MessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  messages ScheduledMessage[]
+
+  @@index([createdAt])
+  @@map("send_batches")
+}
+
+// The outbox. Source of truth for what is due; claimed by the worker with
+// FOR UPDATE SKIP LOCKED.
+model ScheduledMessage {
+  id      String         @id @default(uuid()) @db.Uuid
+  channel MessageChannel @default(EMAIL)
+  status  MessageStatus  @default(PENDING)
+
+  // One row per (enrolment, step) or (batch, recipient) — a retry after a
+  // crash can never produce a second send.
+  idempotencyKey String @unique @map("idempotency_key")
+
+  leadId            String? @map("lead_id") @db.Uuid
+  dealId            String? @map("deal_id") @db.Uuid
+  enrolmentId       String? @map("enrolment_id") @db.Uuid
+  stepId            String? @map("step_id") @db.Uuid
+  batchId           String? @map("batch_id") @db.Uuid
+  templateId        String? @map("template_id") @db.Uuid
+  templateVersionId String? @map("template_version_id") @db.Uuid
+
+  toEmail String? @map("to_email")
+  toPhone String? @map("to_phone")
+
+  // Rendered at send time and kept, so the log shows what was actually sent.
+  subject   String?
+  bodyHtml  String? @map("body_html")
+  bodyText  String? @map("body_text")
+  mergeData Json?   @map("merge_data")
+
+  scheduledFor      DateTime  @map("scheduled_for") @db.Timestamptz(6)
+  claimedAt         DateTime? @map("claimed_at") @db.Timestamptz(6)
+  sentAt            DateTime? @map("sent_at") @db.Timestamptz(6)
+  attempts          Int       @default(0)
+  lastError         String?   @map("last_error")
+  providerMessageId String?   @map("provider_message_id")
+  skipReason        String?   @map("skip_reason")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lead            Lead?              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  deal            Deal?              @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  enrolment       SequenceEnrolment? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  step            SequenceStep?      @relation(fields: [stepId], references: [id], onDelete: SetNull)
+  batch           SendBatch?         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  template        MessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateVersion TemplateVersion?   @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  events          MessageEvent[]
+
+  // The worker's claim query: due, pending, oldest first.
+  @@index([status, scheduledFor])
+  @@index([leadId])
+  @@index([batchId])
+  @@index([enrolmentId])
+  @@map("scheduled_messages")
+}
+
+model MessageEvent {
+  id        String           @id @default(uuid()) @db.Uuid
+  messageId String           @map("message_id") @db.Uuid
+  type      MessageEventType
+  detail    String?
+
+  // Provider's own event id, so a redelivered webhook is not counted twice.
+  providerEventId String?  @unique @map("provider_event_id")
+  occurredAt      DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  message ScheduledMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, occurredAt])
+  @@map("message_events")
+}
+
+// Do-not-contact list, checked before anything is queued. Covers email
+// unsubscribes and (later) SMS STOP replies.
+model MessageSuppression {
+  id      String         @id @default(uuid()) @db.Uuid
+  channel MessageChannel
+
+  // Lower-cased email, or E.164 phone number.
+  address   String
+  reason    SuppressionReason
+  leadId    String?           @map("lead_id") @db.Uuid
+  note      String?
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([channel, address])
+  @@map("message_suppressions")
+}
+
+// A campaign run — the referral campaign is the first one.
+model MessageCampaign {
+  id         String  @id @default(uuid()) @db.Uuid
+  key        String? @unique
+  name       String
+  sequenceId String? @map("sequence_id") @db.Uuid
+
+  // Audience definition, e.g. { "installedMonthsMin": 6, "installedMonthsMax": 24 }
+  segment     Json?
+  isActive    Boolean   @default(false) @map("is_active")
+  startedAt   DateTime? @map("started_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sequence   MessageSequence?    @relation(fields: [sequenceId], references: [id], onDelete: SetNull)
+  enrolments SequenceEnrolment[]
+  holds      CampaignHold[]
+  referrals  Referral[]
+
+  @@map("message_campaigns")
+}
+
+// A customer raised an issue: the referral message is blocked until someone
+// resolves it. The campaign's key rule, enforced in data.
+model CampaignHold {
+  id           String    @id @default(uuid()) @db.Uuid
+  campaignId   String    @map("campaign_id") @db.Uuid
+  leadId       String    @map("lead_id") @db.Uuid
+  reason       String
+  raisedAt     DateTime  @default(now()) @map("raised_at") @db.Timestamptz(6)
+  resolvedAt   DateTime? @map("resolved_at") @db.Timestamptz(6)
+  resolvedById String?   @map("resolved_by") @db.Uuid
+  note         String?
+
+  campaign MessageCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lead     Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, resolvedAt])
+  @@index([leadId])
+  @@map("campaign_holds")
+}
+
+// Who referred whom, and what the reward is worth. The voucher only becomes
+// payable when the referred deal is won.
+model Referral {
+  id             String  @id @default(uuid()) @db.Uuid
+  referrerLeadId String  @map("referrer_lead_id") @db.Uuid
+  referredLeadId String? @unique @map("referred_lead_id") @db.Uuid
+  campaignId     String? @map("campaign_id") @db.Uuid
+  dealId         String? @map("deal_id") @db.Uuid
+
+  // Captured from the referrer's reply before the referred lead exists.
+  referredName  String? @map("referred_name")
+  referredEmail String? @map("referred_email")
+  referredPhone String? @map("referred_phone")
+
+  voucherStatus VoucherStatus @default(PENDING) @map("voucher_status")
+  voucherAmount Decimal       @default(250) @map("voucher_amount") @db.Decimal(10, 2)
+  qualifiedAt   DateTime?     @map("qualified_at") @db.Timestamptz(6)
+  paidAt        DateTime?     @map("paid_at") @db.Timestamptz(6)
+  note          String?
+  createdById   String?       @map("created_by") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  referrerLead Lead             @relation("ReferrerLead", fields: [referrerLeadId], references: [id], onDelete: Cascade)
+  referredLead Lead?            @relation("ReferredLead", fields: [referredLeadId], references: [id], onDelete: SetNull)
+  campaign     MessageCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  deal         Deal?            @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  @@index([referrerLeadId])
+  @@index([voucherStatus])
+  @@map("referrals")
 }

@@ -17,6 +17,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "mail:test": "tsx src/scripts/sendTestEmail.ts",
     "lint": "eslint \"src/**/*.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:reset": "prisma migrate reset --force --skip-generate && npm run db:seed",
     "db:studio": "prisma studio"
   },
@@ -60,6 +62,7 @@
     "@types/uuid": "^10.0.0",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
   }
 }

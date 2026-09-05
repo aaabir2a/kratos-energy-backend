@@ -72,16 +72,26 @@ interface Mail {
   tag?: string;
 }
 
-// Best-effort send: never throws to the caller (a failed email must not fail the
-// business action). Returns true if the provider accepted the message.
-export async function sendMail(mail: Mail): Promise<boolean> {
-  const recipients = (Array.isArray(mail.to) ? mail.to : [mail.to]).filter(Boolean);
-  if (!recipients.length) return false;
+// Outcome of a send attempt. `ok` is the old boolean return, so existing
+// truthiness checks on the result keep working; `messageId` is what the
+// delivery log and bounce webhooks correlate on.
+export interface SendResult {
+  ok: boolean;
+  messageId?: string;
+  error?: string;
+  provider: MailProvider;
+}
 
+// Best-effort send: never throws to the caller (a failed email must not fail the
+// business action). Resolves with the provider's message id when accepted.
+export async function sendMail(mail: Mail): Promise<SendResult> {
+  const recipients = (Array.isArray(mail.to) ? mail.to : [mail.to]).filter(Boolean);
   const provider = mailProvider();
+  if (!recipients.length) return { ok: false, error: 'no recipients', provider };
+
   if (provider === 'none') {
     logger.warn({ subject: mail.subject }, 'Email skipped — no mail provider configured');
-    return false;
+    return { ok: false, error: 'no provider configured', provider };
   }
 
   const text = mail.text ?? toText(mail.html);
@@ -103,10 +113,10 @@ export async function sendMail(mail: Mail): Promise<boolean> {
       // The SDK reports failures in `error` rather than throwing.
       if (error) {
         logger.error({ err: error.message, name: error.name, subject: mail.subject }, 'Email send failed');
-        return false;
+        return { ok: false, error: error.message, provider };
       }
       logger.info({ messageId: data?.id, to: recipients, provider }, 'Email sent');
-      return true;
+      return { ok: true, messageId: data?.id, provider };
     }
 
     const info = await getTransport().sendMail({
@@ -119,10 +129,11 @@ export async function sendMail(mail: Mail): Promise<boolean> {
       ...(Object.keys(headers).length ? { headers } : {}),
     });
     logger.info({ messageId: info.messageId, to: recipients, provider }, 'Email sent');
-    return true;
+    return { ok: true, messageId: info.messageId, provider };
   } catch (err) {
-    logger.error({ err: (err as Error).message, subject: mail.subject, provider }, 'Email send failed');
-    return false;
+    const message = (err as Error).message;
+    logger.error({ err: message, subject: mail.subject, provider }, 'Email send failed');
+    return { ok: false, error: message, provider };
   }
 }
 
