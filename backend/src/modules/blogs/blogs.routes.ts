@@ -51,7 +51,18 @@ function calculateReadMins(blocks: any[]): number {
 // Validation schemas
 const postSchema = z.object({
   title: z.string().min(1),
-  slug: z.string().min(1),
+  slug: z
+    .string()
+    .min(1)
+    .transform((val) =>
+      val
+        .trim()
+        .toLowerCase()
+        .replace(/['"’]/g, '')
+        .replace(/\/+$/, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '')
+    ),
   excerpt: z.string().optional(),
   author: z.string().optional(),
   featuredImage: z.string().optional().nullable(),

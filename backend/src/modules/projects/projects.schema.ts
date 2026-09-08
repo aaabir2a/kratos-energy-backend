@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 export const createProjectSchema = z.object({
-  title: z.string().min(2).max(200),
+  title: z
+    .string()
+    .min(2)
+    .max(200)
+    .transform((val) => val.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()),
   description: z.string().max(5000).optional(),
   images: z.array(z.string().url().max(1000)).max(20).optional(), // ordered public URLs
   location: z.string().max(200).optional(),

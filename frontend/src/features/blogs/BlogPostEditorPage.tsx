@@ -72,14 +72,20 @@ export function BlogPostEditorPage() {
     }
   }, [post, reset]);
 
+  function sanitizeSlug(input: string): string {
+    return input
+      .trim()
+      .toLowerCase()
+      .replace(/['"’]/g, '')           // Strip quotes
+      .replace(/\/+$/, '')             // Strip trailing slashes
+      .replace(/[^a-z0-9]+/g, '-')    // Replace invalid characters with hyphens
+      .replace(/(^-|-$)+/g, '');       // Trim leading/trailing hyphens
+  }
+
   // Real-time slug auto-generation
   useEffect(() => {
     if (!postId && watchTitle) {
-      const slug = watchTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
-      setValue('slug', slug);
+      setValue('slug', sanitizeSlug(watchTitle));
     }
   }, [watchTitle, setValue, postId]);
 
@@ -99,8 +105,10 @@ export function BlogPostEditorPage() {
   };
 
   const onSubmit = async (formData: Partial<BlogPost>) => {
+    const cleanSlug = sanitizeSlug(formData.slug || watchTitle || '');
     const postPayload = {
       ...formData,
+      slug: cleanSlug,
       tags,
       blocks,
       categoryId: formData.categoryId ? Number(formData.categoryId) : null,
@@ -186,7 +194,12 @@ export function BlogPostEditorPage() {
               </Label>
               <Input
                 id="slug"
-                {...register('slug', { required: true })}
+                {...register('slug', {
+                  required: true,
+                  onBlur: (e) => {
+                    setValue('slug', sanitizeSlug(e.target.value));
+                  },
+                })}
                 placeholder="post-url-slug"
                 className="text-xs font-mono"
               />

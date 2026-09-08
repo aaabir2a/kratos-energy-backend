@@ -16,6 +16,16 @@ function dateValue(v: string | null | undefined): Date | null | undefined {
   return cleaned === null ? null : new Date(cleaned);
 }
 
+function slugify(text: string): string {
+  return text
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
 // Newest projects first, but respect an explicit sortOrder when set.
 const ORDER: Prisma.ProjectOrderByWithRelationInput[] = [
   { sortOrder: 'asc' },
@@ -111,7 +121,12 @@ export const projectsService = {
       }),
       prisma.project.count({ where }),
     ]);
-    return { items, meta: buildMeta(params.page, params.limit, total) };
+    const formatted = items.map((p) => ({
+      ...p,
+      title: p.title.replace(/[\r\n]+/g, ' ').trim(),
+      slug: slugify(p.title),
+    }));
+    return { items: formatted, meta: buildMeta(params.page, params.limit, total) };
   },
 
   async publicGet(id: string) {
@@ -128,6 +143,10 @@ export const projectsService = {
       },
     });
     if (!project) throw AppError.notFound('Project not found');
-    return project;
+    return {
+      ...project,
+      title: project.title.replace(/[\r\n]+/g, ' ').trim(),
+      slug: slugify(project.title),
+    };
   },
 };
