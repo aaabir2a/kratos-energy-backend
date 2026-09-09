@@ -4,6 +4,8 @@ import { AppError } from '../../shared/errors/AppError';
 import { buildMeta } from '../../shared/utils/pagination';
 import type { AuthContext } from '../leads/leads.scope';
 import { notificationService } from '../notifications/notification.service';
+import { sequenceService } from '../messaging/sequence.service';
+import { logger } from '../../core/logger/logger';
 
 function leadName(deal: { lead?: { firstName: string; lastName: string } | null }): string | undefined {
   return deal.lead ? `${deal.lead.firstName} ${deal.lead.lastName}`.trim() : undefined;
@@ -143,6 +145,12 @@ export const dealsService = {
         data: { dealId: deal.id, toStageId: stage?.id, changedById: auth.userId, reason: 'Deal created' },
       }),
     ]);
+
+    // The lead has become a deal, so lead-stage follow-up stops. Deal-stage
+    // sequences take over in the next stage of the build.
+    void sequenceService
+      .stopForLead(lead.id, 'converted to a deal', 'stopOnConvert')
+      .catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'stop-on-convert failed'));
 
     return deal;
   },

@@ -9,6 +9,7 @@ import { audit } from '../../shared/utils/audit';
 import { messagingService } from './messaging.service';
 import { queueService } from './queue.service';
 import { sendService } from './send.service';
+import { sequenceService } from './sequence.service';
 import { tick } from './worker';
 import {
   createTemplateSchema,
@@ -19,6 +20,10 @@ import {
   cancelSchema,
   sendPreviewSchema,
   sendSchema,
+  createSequenceSchema,
+  updateSequenceSchema,
+  setStepsSchema,
+  stopReasonSchema,
   idParamSchema,
 } from './messaging.schema';
 
@@ -229,4 +234,120 @@ messagingRouter.post(
     });
     created(res, result);
   }),
+);
+
+// ── Sequences (Stage 4) ───────────────────────────────
+
+messagingRouter.get(
+  '/sequences',
+  requirePermission('messaging.read'),
+  asyncHandler(async (_req, res) => ok(res, await sequenceService.list())),
+);
+
+messagingRouter.post(
+  '/sequences',
+  requirePermission('messaging.write'),
+  validate({ body: createSequenceSchema }),
+  asyncHandler(async (req, res) => created(res, await sequenceService.create(req.body, req.auth!.userId))),
+);
+
+messagingRouter.get(
+  '/sequences/:id',
+  requirePermission('messaging.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.get(req.params.id))),
+);
+
+messagingRouter.patch(
+  '/sequences/:id',
+  requirePermission('messaging.write'),
+  validate({ params: idParamSchema, body: updateSequenceSchema }),
+  asyncHandler(async (req, res) => {
+    const sequence = await sequenceService.update(req.params.id, req.body);
+    // Switching a sequence on starts sending to customers, so it is audited.
+    if (req.body.isActive !== undefined) {
+      await audit({
+        userId: req.auth?.userId,
+        action: req.body.isActive ? 'messaging.sequence_on' : 'messaging.sequence_off',
+        entityType: 'message_sequence',
+        entityId: req.params.id,
+        ip: req.ip,
+      });
+    }
+    ok(res, sequence);
+  }),
+);
+
+// Steps are replaced wholesale rather than patched one at a time.
+messagingRouter.put(
+  '/sequences/:id/steps',
+  requirePermission('messaging.write'),
+  validate({ params: idParamSchema, body: setStepsSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.setSteps(req.params.id, req.body.steps))),
+);
+
+messagingRouter.delete(
+  '/sequences/:id',
+  requirePermission('messaging.write'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => {
+    await sequenceService.remove(req.params.id);
+    noContent(res);
+  }),
+);
+
+// ── Per-lead follow-ups ───────────────────────────────
+
+messagingRouter.get(
+  '/leads/:id/follow-ups',
+  requirePermission('messaging.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.forLead(req.params.id))),
+);
+
+messagingRouter.post(
+  '/enrolments/:id/pause',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.pause(req.params.id))),
+);
+
+messagingRouter.post(
+  '/enrolments/:id/resume',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.resume(req.params.id))),
+);
+
+messagingRouter.post(
+  '/enrolments/:id/cancel',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema, body: stopReasonSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.cancel(req.params.id, req.body.reason))),
+);
+
+// Skip or hurry a single step without touching the rest of the ladder.
+messagingRouter.post(
+  '/queue/:id/skip',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.skipMessage(req.params.id))),
+);
+
+messagingRouter.post(
+  '/queue/:id/send-now',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.sendNow(req.params.id))),
+);
+
+// A customer replied — the single most important stop signal, and the one a
+// rep can trigger by hand when the reply came by phone.
+messagingRouter.post(
+  '/leads/:id/replied',
+  requirePermission('messaging.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) =>
+    ok(res, await sequenceService.stopForLead(req.params.id, 'customer replied', 'stopOnReply')),
+  ),
 );

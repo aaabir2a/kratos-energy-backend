@@ -187,3 +187,90 @@ export const sendApi = {
     name?: string;
   }) => api.post<ApiSuccess<SendResult>>('/messaging/send', body).then((r) => r.data.data),
 };
+
+// ── Sequences (Stage 4) ───────────────────────────────
+
+export type SequenceTrigger =
+  | 'LEAD_CREATED'
+  | 'DEAL_STAGE_CHANGED'
+  | 'DEAL_WON'
+  | 'DEAL_LOST'
+  | 'CAMPAIGN'
+  | 'MANUAL';
+
+export type EnrolmentStatus = 'ACTIVE' | 'HELD' | 'COMPLETED' | 'CANCELLED';
+
+export interface SequenceStep {
+  id: string;
+  templateId: string;
+  position: number;
+  delayMinutes: number;
+  channel: MessageChannel;
+  template: { id: string; name: string; subject: string | null; isActive: boolean };
+}
+
+export interface MessageSequence {
+  id: string;
+  name: string;
+  description: string | null;
+  trigger: SequenceTrigger;
+  channel: MessageChannel;
+  isActive: boolean;
+  filters: { enquiryType?: 'RESIDENTIAL' | 'COMMERCIAL'; sourceIds?: string[] } | null;
+  stopOnReply: boolean;
+  stopOnStageChange: boolean;
+  stopOnConvert: boolean;
+  steps: SequenceStep[];
+  enrolled?: { active: number; held: number; completed: number; cancelled: number };
+}
+
+export interface FollowUpMessage {
+  id: string;
+  status: MessageStatus;
+  subject: string | null;
+  scheduledFor: string;
+  sentAt: string | null;
+  skipReason: string | null;
+  lastError: string | null;
+  step: { position: number } | null;
+}
+
+export interface Enrolment {
+  id: string;
+  status: EnrolmentStatus;
+  createdAt: string;
+  holdReason: string | null;
+  cancelReason: string | null;
+  sequence: { id: string; name: string; trigger: SequenceTrigger };
+  messages: FollowUpMessage[];
+}
+
+export const sequencesApi = {
+  list: () => api.get<ApiSuccess<MessageSequence[]>>('/messaging/sequences').then((r) => r.data.data),
+  get: (id: string) =>
+    api.get<ApiSuccess<MessageSequence>>(`/messaging/sequences/${id}`).then((r) => r.data.data),
+  create: (body: { name: string; trigger: SequenceTrigger; description?: string }) =>
+    api.post<ApiSuccess<MessageSequence>>('/messaging/sequences', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<MessageSequence>) =>
+    api.patch<ApiSuccess<MessageSequence>>(`/messaging/sequences/${id}`, body).then((r) => r.data.data),
+  setSteps: (id: string, steps: { templateId: string; delayMinutes: number }[]) =>
+    api.put<ApiSuccess<MessageSequence>>(`/messaging/sequences/${id}/steps`, { steps }).then((r) => r.data.data),
+  remove: (id: string) => api.delete(`/messaging/sequences/${id}`),
+};
+
+export const followUpsApi = {
+  forLead: (leadId: string) =>
+    api.get<ApiSuccess<Enrolment[]>>(`/messaging/leads/${leadId}/follow-ups`).then((r) => r.data.data),
+  pause: (enrolmentId: string) =>
+    api.post<ApiSuccess<unknown>>(`/messaging/enrolments/${enrolmentId}/pause`).then((r) => r.data.data),
+  resume: (enrolmentId: string) =>
+    api.post<ApiSuccess<unknown>>(`/messaging/enrolments/${enrolmentId}/resume`).then((r) => r.data.data),
+  cancel: (enrolmentId: string) =>
+    api.post<ApiSuccess<unknown>>(`/messaging/enrolments/${enrolmentId}/cancel`).then((r) => r.data.data),
+  skip: (messageId: string) =>
+    api.post<ApiSuccess<unknown>>(`/messaging/queue/${messageId}/skip`).then((r) => r.data.data),
+  sendNow: (messageId: string) =>
+    api.post<ApiSuccess<unknown>>(`/messaging/queue/${messageId}/send-now`).then((r) => r.data.data),
+  markReplied: (leadId: string) =>
+    api.post<ApiSuccess<unknown>>(`/messaging/leads/${leadId}/replied`).then((r) => r.data.data),
+};

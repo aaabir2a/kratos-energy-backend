@@ -6,6 +6,8 @@ import { leadsRepository } from './leads.repository';
 import { buildLeadScope, type AuthContext } from './leads.scope';
 import { pickRoundRobinAssignee } from './assignment.service';
 import { notificationService } from '../notifications/notification.service';
+import { sequenceService } from '../messaging/sequence.service';
+import { logger } from '../../core/logger/logger';
 import { settingsService } from '../settings/settings.service';
 import { parseFieldsSchema } from '../marketing/formEngine';
 
@@ -336,6 +338,13 @@ export const leadsService = {
       subject: `Moved to ${stage.name}`,
       body: reason,
     });
+
+    // Someone has picked this lead up, so the automated chase stops. Only for
+    // sequences configured to respect that rule.
+    void sequenceService
+      .stopForLead(id, `stage changed to ${stage.name}`, 'stopOnStageChange')
+      .catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-stage failed'));
+
     return updated;
   },
 
@@ -349,6 +358,13 @@ export const leadsService = {
       subject: 'Lead lost',
       body: lostReason,
     });
+
+    // A lost lead is never chased further, whatever the sequence says — this
+    // one is not configurable.
+    void sequenceService
+      .stopForLead(id, 'lead marked lost')
+      .catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-lost failed'));
+
     return updated;
   },
 

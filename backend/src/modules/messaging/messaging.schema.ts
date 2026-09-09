@@ -121,3 +121,51 @@ export const sendSchema = sendPreviewSchema.innerType().extend({
 
 export type SendPreviewInput = z.infer<typeof sendPreviewSchema>;
 export type SendInput = z.infer<typeof sendSchema>;
+
+// ── Sequences (Stage 4) ───────────────────────────────
+
+export const SEQUENCE_TRIGGERS = [
+  'LEAD_CREATED',
+  'DEAL_STAGE_CHANGED',
+  'DEAL_WON',
+  'DEAL_LOST',
+  'CAMPAIGN',
+  'MANUAL',
+] as const;
+
+export const sequenceFiltersSchema = z.object({
+  enquiryType: z.enum(['RESIDENTIAL', 'COMMERCIAL']).optional(),
+  sourceIds: z.array(z.string().uuid()).max(20).optional(),
+});
+
+export const createSequenceSchema = z.object({
+  name: z.string().min(1).max(160),
+  description: z.string().max(500).optional(),
+  trigger: z.enum(SEQUENCE_TRIGGERS),
+  channel: z.enum(MESSAGE_CHANNELS).optional(),
+  filters: sequenceFiltersSchema.nullable().optional(),
+  stopOnReply: z.boolean().optional(),
+  stopOnStageChange: z.boolean().optional(),
+  stopOnConvert: z.boolean().optional(),
+});
+
+export const updateSequenceSchema = createSequenceSchema
+  .omit({ trigger: true })
+  .partial()
+  .extend({ isActive: z.boolean().optional() });
+
+export const sequenceStepSchema = z.object({
+  templateId: z.string().uuid(),
+  // Minutes from enrolment. 0 sends immediately; 2880 is "two days later".
+  delayMinutes: z.number().int().min(0).max(60 * 24 * 365),
+});
+
+export const setStepsSchema = z.object({
+  steps: z.array(sequenceStepSchema).max(20),
+});
+
+export const stopReasonSchema = z.object({ reason: z.string().max(200).optional() });
+
+export type CreateSequenceInput = z.infer<typeof createSequenceSchema>;
+export type UpdateSequenceInput = z.infer<typeof updateSequenceSchema>;
+export type SequenceStepInput = z.infer<typeof sequenceStepSchema>;

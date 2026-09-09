@@ -43,6 +43,7 @@ import { initials, formatDate } from '@/lib/utils';
 import { StatusBadge, PriorityDot, StageBadge, fullName } from './leadHelpers';
 import { isBuildLead, OriginBadge, BuildConfigCard } from './buildConfig';
 import { FormResponsesCard } from './FormResponsesCard';
+import { LeadFollowUpsCard } from '@/features/messaging/LeadFollowUpsCard';
 import type { LeadActivity } from '@/lib/api/types';
 
 const ACTIVITY_ICON: Record<LeadActivity['type'], React.ElementType> = {
@@ -204,6 +205,7 @@ export function LeadDetailPage() {
 
   const l = lead.data;
   const canEdit = can('leads.write');
+  const canSeeMessaging = can('messaging.read');
   const salesReps = reps.data?.data.filter((u) => u.role.slug === 'sales') ?? [];
 
   return (
@@ -460,6 +462,8 @@ export function LeadDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {canSeeMessaging && <LeadFollowUpsCard leadId={id} />}
 
           {chatConvs.data && chatConvs.data.length > 0 && (
             <Card>

@@ -5,6 +5,7 @@ import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
 import { notificationService } from '../notifications/notification.service';
 import { settingsService } from '../settings/settings.service';
+import { sequenceService } from '../messaging/sequence.service';
 import {
   parseFieldsSchema,
   validateSubmission,
@@ -269,6 +270,23 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
       .onLeadAssigned({ id: lead.id, firstName: lead.firstName, lastName: lead.lastName, suburb: lead.suburb }, assignedToId)
       .catch(() => undefined);
   }
+
+  // Automated follow-up. Fire-and-forget like the notifications above: a
+  // sequence failing to enrol must never fail the capture itself, or a website
+  // form would start rejecting customers because of a marketing feature.
+  void sequenceService
+    .enrolMatching('LEAD_CREATED', {
+      id: lead.id,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      email: lead.email,
+      suburb: lead.suburb,
+      state: lead.state,
+      enquiryType: lead.enquiryType,
+      leadSourceId: lead.leadSourceId,
+      officeId: lead.officeId,
+    })
+    .catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'sequence enrolment failed'));
 
   return {
     leadId: lead.id,
