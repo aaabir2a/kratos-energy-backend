@@ -61,6 +61,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: 'Email Marketing',
     items: [
       { to: '/email/contacts', label: 'Contact Lists', icon: Users2, perm: 'marketing_email.read' },
+      { to: '/email/campaigns', label: 'Campaigns', icon: Megaphone, perm: 'marketing_email.read' },
     ],
   },
   {

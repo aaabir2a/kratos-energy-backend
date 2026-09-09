@@ -63,3 +63,33 @@ export type CreateContactInput = z.infer<typeof createContactSchema>;
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
 export type ContactQuery = z.infer<typeof contactQuerySchema>;
 export type ImportMapping = z.infer<typeof importMappingSchema>;
+
+// ── Campaigns ─────────────────────────────────────────
+
+export const CAMPAIGN_STATUSES = ['DRAFT', 'SCHEDULED', 'SENDING', 'SENT', 'CANCELLED'] as const;
+
+export const createCampaignSchema = z.object({
+  name: z.string().min(1).max(160),
+  templateId: z.string().uuid().optional(),
+  listIds: z.array(z.string().uuid()).max(50).optional(),
+});
+
+export const updateCampaignSchema = z.object({
+  name: z.string().min(1).max(160).optional(),
+  templateId: z.string().uuid().nullable().optional(),
+  listIds: z.array(z.string().uuid()).max(50).optional(),
+});
+
+export const campaignQuerySchema = z.object({
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+  status: z.enum(CAMPAIGN_STATUSES).optional(),
+});
+
+export const sendCampaignSchema = z.object({
+  /** Omit to send as soon as sending is allowed. */
+  scheduledFor: z.string().datetime().optional(),
+});
+
+export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
+export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;

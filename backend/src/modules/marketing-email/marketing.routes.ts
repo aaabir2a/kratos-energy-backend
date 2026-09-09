@@ -10,6 +10,7 @@ import { audit } from '../../shared/utils/audit';
 import { AppError } from '../../shared/errors/AppError';
 import { contactsService } from './contacts.service';
 import { importService } from './import.service';
+import { campaignService } from './campaign.service';
 import {
   createListSchema,
   updateListSchema,
@@ -19,6 +20,10 @@ import {
   contactQuerySchema,
   membershipSchema,
   importMappingSchema,
+  createCampaignSchema,
+  updateCampaignSchema,
+  campaignQuerySchema,
+  sendCampaignSchema,
   idParamSchema,
 } from './marketing.schema';
 
@@ -185,6 +190,100 @@ marketingEmailRouter.post(
       entityType: 'contact_list',
       entityId: parsed.data.listId,
       after: { imported: result.imported, updated: result.updated },
+      ip: req.ip,
+    });
+    ok(res, result);
+  }),
+);
+
+// ── Campaigns ─────────────────────────────────────────
+
+marketingEmailRouter.get(
+  '/campaigns',
+  requirePermission('marketing_email.read'),
+  validate({ query: campaignQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const { page, limit, skip } = resolvePage(req.query);
+    const { items, total } = await campaignService.list({
+      skip,
+      limit,
+      status: req.query.status as never,
+    });
+    paginated(res, items, buildMeta(page, limit, total));
+  }),
+);
+
+marketingEmailRouter.post(
+  '/campaigns',
+  requirePermission('marketing_email.write'),
+  validate({ body: createCampaignSchema }),
+  asyncHandler(async (req, res) => created(res, await campaignService.create(req.body, req.auth!.userId))),
+);
+
+marketingEmailRouter.get(
+  '/campaigns/:id',
+  requirePermission('marketing_email.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await campaignService.get(req.params.id))),
+);
+
+// Who is in, who is out, and the message rendered for a real recipient.
+marketingEmailRouter.get(
+  '/campaigns/:id/preview',
+  requirePermission('marketing_email.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await campaignService.preview(req.params.id))),
+);
+
+marketingEmailRouter.patch(
+  '/campaigns/:id',
+  requirePermission('marketing_email.write'),
+  validate({ params: idParamSchema, body: updateCampaignSchema }),
+  asyncHandler(async (req, res) => ok(res, await campaignService.update(req.params.id, req.body))),
+);
+
+marketingEmailRouter.delete(
+  '/campaigns/:id',
+  requirePermission('marketing_email.write'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => {
+    await campaignService.remove(req.params.id);
+    noContent(res);
+  }),
+);
+
+// The irreversible one. Audited with the recipient count it actually queued.
+marketingEmailRouter.post(
+  '/campaigns/:id/send',
+  requirePermission('marketing_email.send'),
+  validate({ params: idParamSchema, body: sendCampaignSchema }),
+  asyncHandler(async (req, res) => {
+    const result = await campaignService.send(req.params.id, req.auth!.userId, req.body.scheduledFor);
+    await audit({
+      userId: req.auth?.userId,
+      action: 'marketing_email.campaign_send',
+      entityType: 'email_campaign',
+      entityId: req.params.id,
+      after: { queued: result.queued, scheduledFor: result.scheduledFor },
+      ip: req.ip,
+    });
+    ok(res, result);
+  }),
+);
+
+// Stop what is still queued. What has gone stays recorded.
+marketingEmailRouter.post(
+  '/campaigns/:id/cancel',
+  requirePermission('marketing_email.send'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => {
+    const result = await campaignService.cancel(req.params.id);
+    await audit({
+      userId: req.auth?.userId,
+      action: 'marketing_email.campaign_cancel',
+      entityType: 'email_campaign',
+      entityId: req.params.id,
+      after: result,
       ip: req.ip,
     });
     ok(res, result);

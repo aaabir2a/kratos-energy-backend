@@ -27,6 +27,8 @@ import { TemplateEditorPage } from '@/features/messaging/TemplateEditorPage';
 import { UnsubscribePage } from '@/features/messaging/UnsubscribePage';
 import { ContactListsPage } from '@/features/marketing-email/ContactListsPage';
 import { ContactListDetailPage } from '@/features/marketing-email/ContactListDetailPage';
+import { CampaignsPage } from '@/features/marketing-email/CampaignsPage';
+import { CampaignBuilderPage } from '@/features/marketing-email/CampaignBuilderPage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
@@ -72,6 +74,8 @@ export const router = createBrowserRouter([
             children: [
               { path: '/email/contacts', element: <ContactListsPage /> },
               { path: '/email/contacts/:id', element: <ContactListDetailPage /> },
+              { path: '/email/campaigns', element: <CampaignsPage /> },
+              { path: '/email/campaigns/:id', element: <CampaignBuilderPage /> },
             ],
           },
           {

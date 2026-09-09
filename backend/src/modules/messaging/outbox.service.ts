@@ -14,6 +14,8 @@ import type { MergeData } from './merge';
 export interface EnqueueInput {
   channel?: MessageChannel;
   leadId?: string | null;
+  /** A message belongs to a lead or a marketing contact, never both. */
+  contactId?: string | null;
   dealId?: string | null;
   enrolmentId?: string | null;
   stepId?: string | null;
@@ -50,6 +52,7 @@ export function idempotencyKeyFor(input: EnqueueInput): string {
     input.stepId ?? '',
     input.batchId ?? '',
     input.leadId ?? '',
+    input.contactId ?? '',
     input.toEmail ?? input.toPhone ?? '',
     // Without the template a resend of different copy would collide with the
     // original and be silently swallowed as a duplicate.
@@ -96,6 +99,7 @@ export const outbox = {
           channel,
           idempotencyKey,
           leadId: input.leadId ?? null,
+          contactId: input.contactId ?? null,
           dealId: input.dealId ?? null,
           enrolmentId: input.enrolmentId ?? null,
           stepId: input.stepId ?? null,
