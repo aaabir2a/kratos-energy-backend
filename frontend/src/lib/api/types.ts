@@ -253,8 +253,6 @@ export interface DealStats {
   winRateMtd: number;
   /** Open deals past their expected close date. */
   stalled: number;
-  /** Open deals with an active quote-chase sequence running. */
-  awaitingReply: number;
 }
 
 // ── Phase 5: Landing pages & forms ────────────────────

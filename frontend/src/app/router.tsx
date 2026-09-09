@@ -24,8 +24,6 @@ import { MessageQueuePage } from '@/features/messaging/MessageQueuePage';
 import { MessagingSettingsPage } from '@/features/messaging/MessagingSettingsPage';
 import { TemplateLibraryPage } from '@/features/messaging/TemplateLibraryPage';
 import { TemplateEditorPage } from '@/features/messaging/TemplateEditorPage';
-import { SequencesPage } from '@/features/messaging/SequencesPage';
-import { SequenceEditorPage } from '@/features/messaging/SequenceEditorPage';
 import { UnsubscribePage } from '@/features/messaging/UnsubscribePage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
@@ -73,8 +71,6 @@ export const router = createBrowserRouter([
               { path: '/messaging/queue', element: <MessageQueuePage /> },
               { path: '/messaging/templates', element: <TemplateLibraryPage /> },
               { path: '/messaging/templates/:id', element: <TemplateEditorPage /> },
-              { path: '/messaging/sequences', element: <SequencesPage /> },
-              { path: '/messaging/sequences/:id', element: <SequenceEditorPage /> },
             ],
           },
           {

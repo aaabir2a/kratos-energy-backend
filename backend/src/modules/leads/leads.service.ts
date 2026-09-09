@@ -6,9 +6,7 @@ import { leadsRepository } from './leads.repository';
 import { buildLeadScope, type AuthContext } from './leads.scope';
 import { pickRoundRobinAssignee } from './assignment.service';
 import { notificationService } from '../notifications/notification.service';
-import { sequenceService } from '../messaging/sequence.service';
 import { logger } from '../../core/logger/logger';
-import { runSerial } from '../../shared/utils/serial';
 import { settingsService } from '../settings/settings.service';
 import { parseFieldsSchema } from '../marketing/formEngine';
 
@@ -340,11 +338,8 @@ export const leadsService = {
       body: reason,
     });
 
-    // Someone has picked this lead up, so the automated chase stops. Only for
-    // sequences configured to respect that rule.
-    void runSerial(id, () =>
-      sequenceService.stopForLead(id, `stage changed to ${stage.name}`, "stopOnStageChange"),
-    ).catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-stage failed'));
+    // Stop-on-stage-change for automated follow-up was wired in here and is
+    // switched off with the rest of the sequence triggers.
 
     return updated;
   },
@@ -360,11 +355,8 @@ export const leadsService = {
       body: lostReason,
     });
 
-    // A lost lead is never chased further, whatever the sequence says — this
-    // one is not configurable.
-    void runSerial(id, () =>
-      sequenceService.stopForLead(id, 'lead marked lost'),
-    ).catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-lost failed'));
+    // Stop-on-lost for automated follow-up was wired in here and is switched
+    // off with the rest of the sequence triggers.
 
     return updated;
   },

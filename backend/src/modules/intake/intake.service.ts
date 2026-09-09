@@ -5,8 +5,6 @@ import { AppError } from '../../shared/errors/AppError';
 import { pickRoundRobinAssignee } from '../leads/assignment.service';
 import { notificationService } from '../notifications/notification.service';
 import { settingsService } from '../settings/settings.service';
-import { sequenceService } from '../messaging/sequence.service';
-import { runSerial } from '../../shared/utils/serial';
 import {
   parseFieldsSchema,
   validateSubmission,
@@ -272,22 +270,10 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
       .catch(() => undefined);
   }
 
-  // Automated follow-up. Fire-and-forget like the notifications above: a
-  // sequence failing to enrol must never fail the capture itself, or a website
-  // form would start rejecting customers because of a marketing feature.
-  void runSerial(lead.id, () =>
-    sequenceService.enrolMatching('LEAD_CREATED', {
-      id: lead.id,
-      firstName: lead.firstName,
-      lastName: lead.lastName,
-      email: lead.email,
-      suburb: lead.suburb,
-      state: lead.state,
-      enquiryType: lead.enquiryType,
-      leadSourceId: lead.leadSourceId,
-      officeId: lead.officeId,
-    }),
-  ).catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'sequence enrolment failed'));
+  // Automated follow-up enrolment was wired in here and is currently switched
+  // off at the client's request. The engine (modules/messaging/sequence.service)
+  // is intact; re-enabling is this call plus the stop rules in leads.service
+  // and deals.service.
 
   return {
     leadId: lead.id,
