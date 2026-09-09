@@ -16,7 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { apiErrorMessage } from '@/lib/api/client';
-import { templatesApi, sendApi, type SendFilters } from './api/messagingApi';
+import { templatesApi, sendApi, messagingApi, type SendFilters } from './api/messagingApi';
 
 interface Props {
   open: boolean;
@@ -46,6 +46,15 @@ export function SendEmailDialog({ open, onOpenChange, leadIds, filters, onSent }
     queryFn: () => templatesApi.list({ limit: 100, isActive: 'true' }),
     enabled: open,
   });
+
+  // The wording and the meaning of "now" both depend on whether quiet hours
+  // are applied, so the dialog asks rather than guessing.
+  const settings = useQuery({
+    queryKey: ['messaging', 'settings'],
+    queryFn: () => messagingApi.getSettings(),
+    enabled: open,
+  });
+  const quietHours = settings.data?.sendingWindow.enabled ?? true;
 
   const preview = useMutation({
     mutationFn: () => sendApi.preview({ templateId, leadIds, filters }),
@@ -185,8 +194,12 @@ export function SendEmailDialog({ open, onOpenChange, leadIds, filters, onSent }
                     onChange={(e) => setSchedule(e.target.value as 'now' | 'later')}
                     className="w-auto"
                   >
-                    <option value="now">As soon as sending is allowed</option>
-                    <option value="later">At a specific time</option>
+                    <option value="now">
+                      {quietHours ? 'As soon as sending is allowed' : 'Send immediately'}
+                    </option>
+                    <option value="later">
+                      {quietHours ? 'At a specific time' : 'Send at a specific time'}
+                    </option>
                   </Select>
                   {schedule === 'later' && (
                     <Input
@@ -198,8 +211,10 @@ export function SendEmailDialog({ open, onOpenChange, leadIds, filters, onSent }
                   )}
                 </div>
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" /> Quiet hours still apply — anything falling outside them waits
-                  for the next opening.
+                  <Clock className="h-3 w-3" />
+                  {quietHours
+                    ? 'Quiet hours still apply — anything falling outside them waits for the next opening.'
+                    : 'Quiet hours are switched off, so this goes out at the time you choose — including overnight and at weekends.'}
                 </p>
               </div>
             </>

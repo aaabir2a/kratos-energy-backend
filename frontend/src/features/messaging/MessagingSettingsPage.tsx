@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/PageHeader';
 import { apiErrorMessage } from '@/lib/api/client';
+import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { messagingApi, type SendingWindow } from './api/messagingApi';
 import { hourLabel } from './messagingHelpers';
@@ -57,7 +58,8 @@ export function MessagingSettingsPage() {
   if (settings.isLoading || !window) return <Skeleton className="h-96 w-full rounded-xl" />;
 
   const paused = settings.data?.sendingPaused ?? false;
-  const windowInvalid = window.quietEndHour >= window.quietStartHour;
+  // Only a live window can be invalid — with quiet hours off the hours are dormant.
+  const windowInvalid = window.enabled && window.quietEndHour >= window.quietStartHour;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -96,6 +98,9 @@ export function MessagingSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-4 w-4" /> Quiet hours
+              <Badge variant={window.enabled ? 'default' : 'secondary'} className="ml-auto">
+                {window.enabled ? 'Applied' : 'Off'}
+              </Badge>
             </CardTitle>
             <CardDescription>
               A message that falls due outside these hours waits for the next opening rather than being sent
@@ -103,6 +108,30 @@ export function MessagingSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <label className="flex items-start gap-2.5 rounded-lg border p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-primary"
+                checked={window.enabled}
+                disabled={!canWrite}
+                onChange={(e) => setWindow({ ...window, enabled: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">Apply quiet hours</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Turn this off and messages go out as soon as they are due — including overnight and at
+                  weekends. The hours below are kept, so switching it back on restores them.
+                </span>
+              </span>
+            </label>
+
+            <div
+              className={cn(
+                'space-y-4 transition-opacity',
+                !window.enabled && 'pointer-events-none opacity-50',
+              )}
+              aria-hidden={!window.enabled}
+            >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Sending opens</Label>
@@ -168,6 +197,7 @@ export function MessagingSettingsPage() {
               />
               Weekdays only — a Friday evening message waits for Monday
             </label>
+            </div>
 
             <Button
               disabled={!canWrite || windowInvalid || save.isPending}

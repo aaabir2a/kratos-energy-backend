@@ -11,6 +11,10 @@
 // adding hours.
 
 export interface SendingWindow {
+  /** Master switch. Off means a message goes out when it is due, whatever the
+   *  hour or day — the hours below are kept so turning it back on restores the
+   *  previous settings rather than a default. */
+  enabled: boolean;
   /** No sends at or after this local hour. 19 → nothing from 19:00. */
   quietStartHour: number;
   /** Sending resumes at this local hour. 8 → first send at 08:00. */
@@ -22,6 +26,7 @@ export interface SendingWindow {
 }
 
 export const DEFAULT_WINDOW: SendingWindow = {
+  enabled: true,
   quietStartHour: 19,
   quietEndHour: 8,
   businessDaysOnly: true,
@@ -119,6 +124,8 @@ function isWeekend(weekday: number): boolean {
 
 /** Is this instant inside the allowed sending window? */
 export function isWithinWindow(instant: Date, window: SendingWindow): boolean {
+  // Quiet hours switched off: every moment is sendable.
+  if (!window.enabled) return true;
   const p = localParts(instant, window.timezone);
   if (window.businessDaysOnly && isWeekend(p.weekday)) return false;
   return p.hour >= window.quietEndHour && p.hour < window.quietStartHour;
@@ -132,6 +139,8 @@ export function isWithinWindow(instant: Date, window: SendingWindow): boolean {
  * businessDaysOnly is on.
  */
 export function nextAllowedTime(desired: Date, window: SendingWindow): Date {
+  // With quiet hours off nothing is ever moved, including weekends.
+  if (!window.enabled) return desired;
   if (isWithinWindow(desired, window)) return desired;
 
   let candidate = desired;

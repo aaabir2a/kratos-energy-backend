@@ -36,6 +36,8 @@ export interface QueueSummary {
 }
 
 export interface SendingWindow {
+  /** Master switch — off means messages go out when due, any hour, any day. */
+  enabled: boolean;
   quietStartHour: number;
   quietEndHour: number;
   businessDaysOnly: boolean;

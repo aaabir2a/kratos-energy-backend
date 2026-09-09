@@ -181,3 +181,44 @@ describe('retryDelayMs', () => {
     expect(retryDelayMs(99)).toBe(120 * 60_000);
   });
 });
+
+describe('quiet hours switched off', () => {
+  const off: SendingWindow = { ...SYD, enabled: false };
+
+  it('treats the small hours as sendable', () => {
+    expect(isWithinWindow(syd(2026, 9, 8, 3), off)).toBe(true);
+  });
+
+  it('treats the weekend as sendable', () => {
+    expect(isWithinWindow(syd(2026, 9, 12, 22), off)).toBe(true);
+  });
+
+  // The whole point of the switch: a message due at 2am goes at 2am.
+  it('leaves an overnight message exactly where it was scheduled', () => {
+    const due = syd(2026, 9, 8, 2, 30);
+    expect(nextAllowedTime(due, off).toISOString()).toBe(due.toISOString());
+  });
+
+  it('leaves a Friday-night message on Friday night', () => {
+    const due = syd(2026, 9, 11, 23);
+    expect(nextAllowedTime(due, off).toISOString()).toBe(due.toISOString());
+  });
+
+  it('never moves any hour of any day', () => {
+    for (const day of [8, 9, 10, 11, 12, 13, 14]) {
+      for (const hour of [0, 3, 7, 8, 13, 19, 23]) {
+        const due = syd(2026, 9, day, hour);
+        expect(nextAllowedTime(due, off).toISOString()).toBe(due.toISOString());
+      }
+    }
+  });
+
+  // Switching it back on must restore the previous behaviour, not a default —
+  // the hours are kept while dormant.
+  it('resumes moving messages when switched back on', () => {
+    const due = syd(2026, 9, 8, 2, 30);
+    expect(nextAllowedTime(due, { ...off, enabled: true }).toISOString()).toBe(
+      syd(2026, 9, 8, 8).toISOString(),
+    );
+  });
+});

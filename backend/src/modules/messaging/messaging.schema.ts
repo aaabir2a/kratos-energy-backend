@@ -64,6 +64,8 @@ export const listQueueQuerySchema = z.object({
 });
 
 export const sendingWindowSchema = z.object({
+  /** Master switch for quiet hours. Off = send whenever a message is due. */
+  enabled: z.boolean(),
   quietStartHour: z.number().int().min(0).max(23),
   quietEndHour: z.number().int().min(0).max(23),
   businessDaysOnly: z.boolean(),
@@ -78,9 +80,12 @@ export const updateSettingsSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
 
-// A window that opens after it closes would silently mean "never send".
+// A window that opens after it closes would silently mean "never send" — but
+// only matters while quiet hours are switched on. With them off the stored
+// hours are dormant, and rejecting them would stop someone turning the feature
+// off to escape a bad window.
 export const validatedWindowSchema = sendingWindowSchema.refine(
-  (w) => w.quietEndHour < w.quietStartHour,
+  (w) => !w.enabled || w.quietEndHour < w.quietStartHour,
   { message: 'Sending must open before it closes (quietEndHour < quietStartHour)' },
 );
 
