@@ -147,6 +147,15 @@ export function DealsPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {d.status === 'OPEN' ? (d.expectedCloseDate ? formatDate(d.expectedCloseDate) : '—') : formatDate(d.closedAt)}
+                    {/* Past its own close date and still open — the cheapest
+                        signal that a deal has gone quiet. */}
+                    {d.status === 'OPEN' &&
+                      d.expectedCloseDate &&
+                      new Date(d.expectedCloseDate) < new Date() && (
+                        <Badge variant="warning" className="ml-2 text-[10px]">
+                          Stalled
+                        </Badge>
+                      )}
                   </TableCell>
                 </TableRow>
               ))}

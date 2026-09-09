@@ -6,6 +6,7 @@ import type { AuthContext } from '../leads/leads.scope';
 import { notificationService } from '../notifications/notification.service';
 import { sequenceService } from '../messaging/sequence.service';
 import { logger } from '../../core/logger/logger';
+import { runSerial } from '../../shared/utils/serial';
 
 function leadName(deal: { lead?: { firstName: string; lastName: string } | null }): string | undefined {
   return deal.lead ? `${deal.lead.firstName} ${deal.lead.lastName}`.trim() : undefined;
@@ -148,9 +149,9 @@ export const dealsService = {
 
     // The lead has become a deal, so lead-stage follow-up stops. Deal-stage
     // sequences take over in the next stage of the build.
-    void sequenceService
-      .stopForLead(lead.id, 'converted to a deal', 'stopOnConvert')
-      .catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'stop-on-convert failed'));
+    void runSerial(lead.id, () =>
+      sequenceService.stopForLead(lead.id, 'converted to a deal', 'stopOnConvert'),
+    ).catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'stop-on-convert failed'));
 
     return deal;
   },
@@ -245,7 +246,18 @@ export const dealsService = {
     await prisma.deal.update({ where: { id }, data: { value: agg._sum.lineTotal ?? 0 } });
   },
 
-  async moveStage(auth: AuthContext, id: string, stageId: string, reason?: string) {
+  /**
+   * `skipSequences` is used by win() and lose(), which move the stage and then
+   * run their own ordered stop-then-enrol. Without it the two would race and a
+   * won-deal enrolment could be cancelled by the stage change that created it.
+   */
+  async moveStage(
+    auth: AuthContext,
+    id: string,
+    stageId: string,
+    reason?: string,
+    opts: { skipSequences?: boolean } = {},
+  ) {
     const deal = await this.getById(auth, id);
     if (deal.status !== 'OPEN') throw AppError.badRequest('Deal is already closed');
     const stage = await getDealStage(stageId);
@@ -263,16 +275,33 @@ export const dealsService = {
     await prisma.dealStageHistory.create({
       data: { dealId: id, fromStageId: deal.stageId, toStageId: stage.id, changedById: auth.userId, reason },
     });
+
+    if (!opts.skipSequences) {
+      // Stop before enrolling, in that order: the deal has moved on, so the
+      // previous stage's chase is cancelled, and only then does the new stage's
+      // chase begin. A closed deal gets its won/lost sequence instead.
+      void runSerial(id, async () => {
+        await sequenceService.stopForDeal(id, `deal moved to ${stage.name}`);
+        if (updated.status === 'OPEN') await sequenceService.enrolForDeal('DEAL_STAGE_CHANGED', id);
+      }).catch((err) => logger.error({ err: (err as Error).message, dealId: id }, "deal sequences failed"));
+    }
+
     return updated;
   },
 
   async win(auth: AuthContext, id: string) {
     const stage = await getDealStage('won');
     if (!stage) throw AppError.notFound('No won stage configured');
-    const deal = await this.moveStage(auth, id, stage.id, 'Closed won');
+    const deal = await this.moveStage(auth, id, stage.id, 'Closed won', { skipSequences: true });
     await prisma.leadActivity.create({
       data: { leadId: deal.leadId, userId: auth.userId, type: 'SYSTEM', subject: 'Deal won', body: `D-${deal.dealNumber} closed won ($${Number(deal.value).toLocaleString()}).` },
     });
+
+    // Chase stops, welcome starts — in that order.
+    void runSerial(id, async () => {
+      await sequenceService.stopForDeal(id, 'deal closed won');
+      await sequenceService.enrolForDeal('DEAL_WON', id);
+    }).catch((err) => logger.error({ err: (err as Error).message, dealId: id }, "won sequences failed"));
     void notificationService
       .onDealClosed({ id: deal.id, dealNumber: deal.dealNumber, value: Number(deal.value), ownerId: deal.ownerId, officeId: deal.officeId, leadName: leadName(deal) }, 'won')
       .catch(() => undefined);
@@ -282,11 +311,18 @@ export const dealsService = {
   async lose(auth: AuthContext, id: string, lostReason: string) {
     const stage = await getDealStage('lost');
     if (!stage) throw AppError.notFound('No lost stage configured');
-    const deal = await this.moveStage(auth, id, stage.id, lostReason);
+    const deal = await this.moveStage(auth, id, stage.id, lostReason, { skipSequences: true });
     const updated = await prisma.deal.update({ where: { id }, data: { lostReason }, include: dealInclude });
     await prisma.leadActivity.create({
       data: { leadId: deal.leadId, userId: auth.userId, type: 'SYSTEM', subject: 'Deal lost', body: lostReason },
     });
+
+    // The chase stops immediately; the win-back sits at whatever delay the
+    // lost sequence's steps define (90 days in the intended setup).
+    void runSerial(id, async () => {
+      await sequenceService.stopForDeal(id, 'deal closed lost');
+      await sequenceService.enrolForDeal('DEAL_LOST', id);
+    }).catch((err) => logger.error({ err: (err as Error).message, dealId: id }, "lost sequences failed"));
     void notificationService
       .onDealClosed({ id: updated.id, dealNumber: updated.dealNumber, value: Number(updated.value), ownerId: updated.ownerId, officeId: updated.officeId, leadName: leadName(updated) }, 'lost', lostReason)
       .catch(() => undefined);
@@ -307,12 +343,29 @@ export const dealsService = {
       prisma.deal.aggregate({ where: { ...scope, status: 'WON', closedAt: { gte: monthStart } }, _sum: { value: true } }),
     ]);
     const closedMtd = wonMtd + lostMtd;
+
+    // A deal past the date it was meant to close is the cheapest signal that
+    // something has gone quiet, and it is already in the data.
+    const stalled = await prisma.deal.count({
+      where: { ...scope, status: 'OPEN', expectedCloseDate: { lt: new Date() } },
+    });
+    // Quotes sent that nobody has replied to — the chase's own scoreboard.
+    const awaitingReply = await prisma.deal.count({
+      where: {
+        ...scope,
+        status: 'OPEN',
+        sequenceEnrolments: { some: { status: 'ACTIVE', sequence: { trigger: 'DEAL_STAGE_CHANGED' } } },
+      },
+    });
+
     return {
       open,
       openValue: Number(openValue._sum.value ?? 0),
       wonMtd,
       wonValueMtd: Number(wonValueMtd._sum.value ?? 0),
       winRateMtd: closedMtd ? Math.round((wonMtd / closedMtd) * 100) : 0,
+      stalled,
+      awaitingReply,
     };
   },
 };

@@ -351,3 +351,12 @@ messagingRouter.post(
     ok(res, await sequenceService.stopForLead(req.params.id, 'customer replied', 'stopOnReply')),
   ),
 );
+
+// ── Deal follow-ups (Stage 5) ─────────────────────────
+
+messagingRouter.get(
+  '/deals/:id/follow-ups',
+  requirePermission('messaging.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await sequenceService.forDeal(req.params.id))),
+);

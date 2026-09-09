@@ -6,6 +6,7 @@ import { pickRoundRobinAssignee } from '../leads/assignment.service';
 import { notificationService } from '../notifications/notification.service';
 import { settingsService } from '../settings/settings.service';
 import { sequenceService } from '../messaging/sequence.service';
+import { runSerial } from '../../shared/utils/serial';
 import {
   parseFieldsSchema,
   validateSubmission,
@@ -274,8 +275,8 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
   // Automated follow-up. Fire-and-forget like the notifications above: a
   // sequence failing to enrol must never fail the capture itself, or a website
   // form would start rejecting customers because of a marketing feature.
-  void sequenceService
-    .enrolMatching('LEAD_CREATED', {
+  void runSerial(lead.id, () =>
+    sequenceService.enrolMatching('LEAD_CREATED', {
       id: lead.id,
       firstName: lead.firstName,
       lastName: lead.lastName,
@@ -285,8 +286,8 @@ export async function captureLead(args: CaptureLeadArgs): Promise<CaptureResult>
       enquiryType: lead.enquiryType,
       leadSourceId: lead.leadSourceId,
       officeId: lead.officeId,
-    })
-    .catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'sequence enrolment failed'));
+    }),
+  ).catch((err) => logger.error({ err: (err as Error).message, leadId: lead.id }, 'sequence enrolment failed'));
 
   return {
     leadId: lead.id,

@@ -3,7 +3,7 @@ import { prisma } from '../../core/database/prisma';
 import { logger } from '../../core/logger/logger';
 import { AppError } from '../../shared/errors/AppError';
 import { outbox } from './outbox.service';
-import { mergeDataForLead } from './merge';
+import { mergeDataForLead, mergeDataForDeal, type MergeData } from './merge';
 import type { CreateSequenceInput, UpdateSequenceInput, SequenceStepInput } from './messaging.schema';
 
 // Sequences: a lead joins one, and its steps are queued as ordinary outbox
@@ -183,16 +183,27 @@ export const sequenceService = {
    * Enrol a lead and queue every step. Returns null when nothing applied, which
    * is the common case — most leads match no active sequence.
    */
-  async enrol(sequenceId: string, lead: EnrolmentLead, opts: { dealId?: string | null } = {}) {
+  async enrol(
+    sequenceId: string,
+    lead: EnrolmentLead,
+    opts: { dealId?: string | null; extraMerge?: MergeData } = {},
+  ) {
     const sequence = await prisma.messageSequence.findFirst({
       where: { id: sequenceId, deletedAt: null },
       include: { steps: { orderBy: { position: 'asc' } } },
     });
     if (!sequence || !sequence.steps.length) return null;
 
-    // Re-enrolling a lead already being followed up would double every message.
+    // Re-enrolling would double every message. Scoped to the deal when there is
+    // one: a customer with two open quotes should get a chase for each, but not
+    // two chases for the same quote.
     const existing = await prisma.sequenceEnrolment.findFirst({
-      where: { sequenceId, leadId: lead.id, status: { in: ['ACTIVE', 'HELD'] } },
+      where: {
+        sequenceId,
+        leadId: lead.id,
+        ...(opts.dealId ? { dealId: opts.dealId } : {}),
+        status: { in: ['ACTIVE', 'HELD'] },
+      },
       select: { id: true },
     });
     if (existing) return null;
@@ -203,7 +214,7 @@ export const sequenceService = {
     });
 
     const now = Date.now();
-    const merge = mergeDataForLead(lead);
+    const merge = { ...mergeDataForLead(lead), ...(opts.extraMerge ?? {}) };
     let queued = 0;
 
     for (const step of sequence.steps) {
@@ -247,6 +258,84 @@ export const sequenceService = {
       if (result) results.push(result);
     }
     return results;
+  },
+
+  /**
+   * Enrol the customer behind a deal. The enrolment still hangs off the lead —
+   * that is who receives the email — but carries the deal id so the message can
+   * quote real line items, and so stopping one deal's chase does not touch
+   * another's.
+   */
+  async enrolForDeal(trigger: SequenceTrigger, dealId: string) {
+    const deal = await prisma.deal.findFirst({
+      where: { id: dealId, deletedAt: null },
+      include: {
+        items: { orderBy: { sortOrder: 'asc' } },
+        lead: {
+          select: {
+            id: true, firstName: true, lastName: true, email: true, suburb: true,
+            state: true, enquiryType: true, leadSourceId: true, officeId: true,
+            assignedTo: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+    if (!deal?.lead) return [];
+
+    const candidates = await prisma.messageSequence.findMany({
+      where: { trigger, isActive: true, deletedAt: null },
+      select: { id: true, filters: true },
+    });
+
+    const dealMerge = mergeDataForDeal(deal);
+    const results = [];
+    for (const candidate of candidates) {
+      if (!matchesFilters(deal.lead, candidate.filters)) continue;
+      const result = await this.enrol(candidate.id, deal.lead, { dealId, extraMerge: dealMerge });
+      if (result) results.push(result);
+    }
+    return results;
+  },
+
+  /** Cancel deal-driven follow-up for one deal, leaving other deals alone. */
+  async stopForDeal(dealId: string, reason: string) {
+    const enrolments = await prisma.sequenceEnrolment.findMany({
+      where: { dealId, status: { in: ['ACTIVE', 'HELD'] } },
+      select: { id: true },
+    });
+    if (!enrolments.length) return { cancelled: 0, messages: 0 };
+
+    const ids = enrolments.map((e) => e.id);
+    const [, messages] = await prisma.$transaction([
+      prisma.sequenceEnrolment.updateMany({
+        where: { id: { in: ids } },
+        data: { status: 'CANCELLED', cancelledAt: new Date(), cancelReason: reason },
+      }),
+      prisma.scheduledMessage.updateMany({
+        where: { enrolmentId: { in: ids }, status: 'PENDING' },
+        data: { status: 'CANCELLED', skipReason: reason },
+      }),
+    ]);
+    logger.info({ dealId, reason, cancelled: ids.length, messages: messages.count }, 'deal sequences stopped');
+    return { cancelled: ids.length, messages: messages.count };
+  },
+
+  /** Enrolments and their messages for one deal — the deal detail panel. */
+  async forDeal(dealId: string) {
+    return prisma.sequenceEnrolment.findMany({
+      where: { dealId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        sequence: { select: { id: true, name: true, trigger: true } },
+        messages: {
+          orderBy: { scheduledFor: 'asc' },
+          select: {
+            id: true, status: true, subject: true, scheduledFor: true, sentAt: true,
+            skipReason: true, lastError: true, step: { select: { position: true } },
+          },
+        },
+      },
+    });
   },
 
   // ── Stopping ─────────────────────────────────────────

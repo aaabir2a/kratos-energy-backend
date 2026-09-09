@@ -8,6 +8,7 @@ import { pickRoundRobinAssignee } from './assignment.service';
 import { notificationService } from '../notifications/notification.service';
 import { sequenceService } from '../messaging/sequence.service';
 import { logger } from '../../core/logger/logger';
+import { runSerial } from '../../shared/utils/serial';
 import { settingsService } from '../settings/settings.service';
 import { parseFieldsSchema } from '../marketing/formEngine';
 
@@ -341,9 +342,9 @@ export const leadsService = {
 
     // Someone has picked this lead up, so the automated chase stops. Only for
     // sequences configured to respect that rule.
-    void sequenceService
-      .stopForLead(id, `stage changed to ${stage.name}`, 'stopOnStageChange')
-      .catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-stage failed'));
+    void runSerial(id, () =>
+      sequenceService.stopForLead(id, `stage changed to ${stage.name}`, "stopOnStageChange"),
+    ).catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-stage failed'));
 
     return updated;
   },
@@ -361,9 +362,9 @@ export const leadsService = {
 
     // A lost lead is never chased further, whatever the sequence says — this
     // one is not configurable.
-    void sequenceService
-      .stopForLead(id, 'lead marked lost')
-      .catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-lost failed'));
+    void runSerial(id, () =>
+      sequenceService.stopForLead(id, 'lead marked lost'),
+    ).catch((err) => logger.error({ err: (err as Error).message, leadId: id }, 'stop-on-lost failed'));
 
     return updated;
   },

@@ -274,3 +274,9 @@ export const followUpsApi = {
   markReplied: (leadId: string) =>
     api.post<ApiSuccess<unknown>>(`/messaging/leads/${leadId}/replied`).then((r) => r.data.data),
 };
+
+// Deal follow-ups (Stage 5) — same shape as the lead view.
+export const dealFollowUpsApi = {
+  forDeal: (dealId: string) =>
+    api.get<ApiSuccess<Enrolment[]>>(`/messaging/deals/${dealId}/follow-ups`).then((r) => r.data.data),
+};

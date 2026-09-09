@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
-import { followUpsApi, type EnrolmentStatus } from './api/messagingApi';
+import { followUpsApi, dealFollowUpsApi, type EnrolmentStatus } from './api/messagingApi';
 import { MessageStatusBadge, relativeTime, formatDateTime } from './messagingHelpers';
 
 const ENROLMENT_BADGE: Record<EnrolmentStatus, { label: string; variant: 'default' | 'success' | 'secondary' | 'warning' }> = {
@@ -22,18 +22,21 @@ const ENROLMENT_BADGE: Record<EnrolmentStatus, { label: string; variant: 'defaul
  * Sits on the lead detail page so a rep never has to wonder what the CRM has
  * already said to their customer.
  */
-export function LeadFollowUpsCard({ leadId }: { leadId: string }) {
+export function LeadFollowUpsCard({ leadId, dealId }: { leadId?: string; dealId?: string }) {
   const qc = useQueryClient();
   const { can } = usePermissions();
   const canSend = can('messaging.send');
 
   const followUps = useQuery({
-    queryKey: ['messaging', 'follow-ups', leadId],
-    queryFn: () => followUpsApi.forLead(leadId),
+    queryKey: ['messaging', 'follow-ups', dealId ?? leadId],
+    // On a deal, show only that deal's follow-up — a customer with two quotes
+    // should not see both chases under one of them.
+    queryFn: () => (dealId ? dealFollowUpsApi.forDeal(dealId) : followUpsApi.forLead(leadId!)),
+    enabled: Boolean(dealId ?? leadId),
   });
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['messaging', 'follow-ups', leadId] });
+    qc.invalidateQueries({ queryKey: ['messaging', 'follow-ups', dealId ?? leadId] });
     qc.invalidateQueries({ queryKey: ['leads', leadId] });
   };
 
@@ -71,7 +74,7 @@ export function LeadFollowUpsCard({ leadId }: { leadId: string }) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            This lead is not in any automated follow-up.
+            {dealId ? 'This deal is not in any automated follow-up.' : 'This lead is not in any automated follow-up.'}
           </p>
         </CardContent>
       </Card>
@@ -84,7 +87,7 @@ export function LeadFollowUpsCard({ leadId }: { leadId: string }) {
         <CardTitle className="flex items-center gap-2 text-base">
           <Workflow className="h-4 w-4 text-muted-foreground" /> Follow-ups
         </CardTitle>
-        {canSend && running.length > 0 && (
+        {canSend && running.length > 0 && leadId && (
           <Button variant="outline" size="sm" onClick={() => replied.mutate(leadId)} disabled={replied.isPending}>
             <MessageSquareReply className="h-4 w-4" /> Customer replied
           </Button>

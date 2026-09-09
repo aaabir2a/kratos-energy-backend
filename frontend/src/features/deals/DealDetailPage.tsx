@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { dealsApi, pipelineApi } from '@/lib/api/endpoints';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
+import { LeadFollowUpsCard } from '@/features/messaging/LeadFollowUpsCard';
 import { formatDate } from '@/lib/utils';
 import { StageBadge } from '@/features/leads/leadHelpers';
 
@@ -189,6 +190,8 @@ export function DealDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {can('messaging.read') && <LeadFollowUpsCard dealId={id} />}
         </div>
 
         <div className="lg:col-span-2">

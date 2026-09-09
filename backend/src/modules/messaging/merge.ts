@@ -20,6 +20,11 @@ export const MERGE_FIELDS: { field: string; label: string; fallback: string }[] 
   { field: 'repName', label: 'Assigned rep', fallback: 'the Kratos team' },
   { field: 'companyName', label: 'Company name', fallback: 'Kratos Sustainability' },
   { field: 'companyPhone', label: 'Company phone', fallback: '1300 089 547' },
+  // Deal fields — only filled when a message belongs to a deal.
+  { field: 'dealNumber', label: 'Deal number', fallback: 'your quote' },
+  { field: 'dealValue', label: 'Deal value', fallback: 'the quoted amount' },
+  { field: 'dealItems', label: 'What was quoted', fallback: 'your system' },
+  { field: 'expectedCloseDate', label: 'Expected close date', fallback: 'soon' },
 ];
 
 const FALLBACKS = new Map(MERGE_FIELDS.map((f) => [f.field, f.fallback]));
@@ -87,5 +92,36 @@ export function mergeDataForLead(lead: {
     state: lead.state ?? undefined,
     enquiryType: lead.enquiryType ? lead.enquiryType.toLowerCase() : undefined,
     repName: lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}`.trim() : undefined,
+  };
+}
+
+const money = (value: number) =>
+  `$${value.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+/**
+ * Deal fields for a message about a quote or a closed sale.
+ *
+ * Line items come from the deal's own snapshot prices — never recomputed from
+ * the live catalog, because rebates change and a customer must be told what
+ * they actually agreed to.
+ */
+export function mergeDataForDeal(deal: {
+  dealNumber: number | string;
+  value: unknown;
+  expectedCloseDate?: Date | null;
+  items?: { description: string; quantity: number; unitPrice: unknown; lineTotal: unknown }[];
+}): MergeData {
+  const items = deal.items ?? [];
+  return {
+    dealNumber: `D-${deal.dealNumber}`,
+    dealValue: money(Number(deal.value ?? 0)),
+    expectedCloseDate: deal.expectedCloseDate
+      ? deal.expectedCloseDate.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+      : undefined,
+    dealItems: items.length
+      ? items
+          .map((i) => `${i.quantity} × ${i.description} — ${money(Number(i.lineTotal ?? 0))}`)
+          .join('\n')
+      : undefined,
   };
 }

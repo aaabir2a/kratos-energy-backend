@@ -13,6 +13,8 @@ import {
   CalendarClock,
   Home,
   Building2,
+  MailQuestion,
+  TimerOff,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -255,6 +257,24 @@ export function DashboardPage() {
                   tone="text-primary"
                   onClick={() => navigate('/leads')}
                 />
+                {can('deals.read') && (
+                  <>
+                    <AttentionRow
+                      label="Quotes awaiting a reply"
+                      count={dealStats.data?.awaitingReply ?? 0}
+                      icon={MailQuestion}
+                      tone="text-blue-600 dark:text-blue-400"
+                      onClick={() => navigate('/deals')}
+                    />
+                    <AttentionRow
+                      label="Deals past their close date"
+                      count={dealStats.data?.stalled ?? 0}
+                      icon={TimerOff}
+                      tone="text-red-600 dark:text-red-400"
+                      onClick={() => navigate('/deals')}
+                    />
+                  </>
+                )}
                 <p className="px-2 pt-1 text-[11px] text-muted-foreground">
                   {snapshotPartial
                     ? `From the ${openSnapshot.length} newest of ${openTotal} open leads.`
