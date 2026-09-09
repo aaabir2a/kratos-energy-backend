@@ -712,21 +712,21 @@ model LandingPage {
 // Dynamic form definition (PDF fields_schema JSONB), versioned so historic
 // submissions validate against the schema that existed when submitted.
 model CustomLeadForm {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String       @id @default(uuid()) @db.Uuid
   // Global site form (contact/home on kratos-energy.com) — not tied to a page.
   // Singleton: at most one active global form, enforced in the service layer.
-  isGlobal         Boolean  @default(false) @map("is_global")
+  isGlobal         Boolean      @default(false) @map("is_global")
   // Fixed enquiry type for every lead this form captures. Chosen when a
   // marketing form is created. Null on the global site form, where the
   // visitor picks it via the mapped enquiry-type field instead.
   enquiryType      EnquiryType? @map("enquiry_type")
-  formTitle        String   @map("form_title")
-  fieldsSchema     Json     @map("fields_schema")
-  version          Int      @default(1)
-  isActive         Boolean  @default(true) @map("is_active")
-  submitButtonText String   @default("Get my free quote") @map("submit_button_text")
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  formTitle        String       @map("form_title")
+  fieldsSchema     Json         @map("fields_schema")
+  version          Int          @default(1)
+  isActive         Boolean      @default(true) @map("is_active")
+  submitButtonText String       @default("Get my free quote") @map("submit_button_text")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   landingPages LandingPage[]
 
@@ -920,12 +920,12 @@ model AppSetting {
 // ═══════════════════════════════════════════════════════════
 
 model BlogCategory {
-  id          Int        @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  slug        String     @unique
+  slug        String   @unique
   description String?
-  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   posts BlogPost[]
 
@@ -933,12 +933,12 @@ model BlogCategory {
 }
 
 model BlogType {
-  id          Int        @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  slug        String     @unique     // article | faq | general-blog | how-to
+  slug        String   @unique // article | faq | general-blog | how-to
   description String?
-  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   posts BlogPost[]
 
@@ -951,31 +951,31 @@ enum BlogStatus {
 }
 
 model BlogPost {
-  id              Int           @id @default(autoincrement())
-  title           String
-  slug            String        @unique
-  excerpt         String?
-  author          String?
-  featuredImage   String?       @map("featured_image")
-  readMins        Int?          @map("read_mins")
-  tags            String[]      @default([])
-  blocks          Json          @default("[]")
-  status          BlogStatus    @default(draft)
+  id            Int        @id @default(autoincrement())
+  title         String
+  slug          String     @unique
+  excerpt       String?
+  author        String?
+  featuredImage String?    @map("featured_image")
+  readMins      Int?       @map("read_mins")
+  tags          String[]   @default([])
+  blocks        Json       @default("[]")
+  status        BlogStatus @default(draft)
 
   // Taxonomy
-  categoryId      Int?          @map("category_id")
-  typeId          Int?          @map("type_id")
+  categoryId Int? @map("category_id")
+  typeId     Int? @map("type_id")
 
   // SEO
-  metaTitle       String?       @map("meta_title")
-  metaDescription String?       @map("meta_description")
-  canonicalUrl    String?       @map("canonical_url")
+  metaTitle       String? @map("meta_title")
+  metaDescription String? @map("meta_description")
+  canonicalUrl    String? @map("canonical_url")
 
   // Timestamps
-  publishedAt     DateTime?     @map("published_at") @db.Timestamptz(6)
-  createdById     String?       @map("created_by") @db.Uuid
-  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   type     BlogType?     @relation(fields: [typeId], references: [id], onDelete: SetNull)
@@ -986,7 +986,6 @@ model BlogPost {
   @@index([typeId])
   @@map("blog_posts")
 }
-
 
 // ═════════════════════════════════════════════════════════════
 // PROJECTS — completed installations showcased on the main
@@ -1103,10 +1102,11 @@ model MessageTemplate {
   updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
 
-  versions TemplateVersion[]
-  steps    SequenceStep[]
-  messages ScheduledMessage[]
-  batches  SendBatch[]
+  versions  TemplateVersion[]
+  steps     SequenceStep[]
+  messages  ScheduledMessage[]
+  batches   SendBatch[]
+  campaigns EmailCampaign[]
 
   @@index([category, isActive])
   @@index([channel])
@@ -1225,8 +1225,9 @@ model SendBatch {
   createdById  String?   @map("created_by") @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  template MessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  messages ScheduledMessage[]
+  template  MessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  messages  ScheduledMessage[]
+  campaigns EmailCampaign[]
 
   @@index([createdAt])
   @@map("send_batches")
@@ -1244,6 +1245,8 @@ model ScheduledMessage {
   idempotencyKey String @unique @map("idempotency_key")
 
   leadId            String? @map("lead_id") @db.Uuid
+  // A message belongs to a lead or a marketing contact, never both.
+  contactId         String? @map("contact_id") @db.Uuid
   dealId            String? @map("deal_id") @db.Uuid
   enrolmentId       String? @map("enrolment_id") @db.Uuid
   stepId            String? @map("step_id") @db.Uuid
@@ -1272,6 +1275,7 @@ model ScheduledMessage {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   lead            Lead?              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contact         MarketingContact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
   deal            Deal?              @relation(fields: [dealId], references: [id], onDelete: SetNull)
   enrolment       SequenceEnrolment? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
   step            SequenceStep?      @relation(fields: [stepId], references: [id], onDelete: SetNull)
@@ -1396,4 +1400,129 @@ model Referral {
   @@index([referrerLeadId])
   @@index([voucherStatus])
   @@map("referrals")
+}
+
+// ═════════════════════════════════════════════════════════════
+// EMAIL MARKETING — contacts, lists, campaigns
+//
+// Deliberately separate from leads: a marketing contact is its own
+// record, uploaded or added directly, and a campaign targets lists
+// rather than a lead filter. The two halves share one thing that
+// matters — the suppression list in `message_suppressions`, keyed on
+// the address — because the same person can be both a contact and a
+// lead, and an unsubscribe has to stop everything.
+// ═════════════════════════════════════════════════════════════
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+model ContactList {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  // Column names seen in imports, so the table can show them as columns
+  // and a template can offer them as merge fields.
+  customColumns String[]  @default([]) @map("custom_columns")
+  createdById   String?   @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  members   ContactListMember[]
+  campaigns EmailCampaignList[]
+
+  @@index([deletedAt])
+  @@map("contact_lists")
+}
+
+// One row per address. Belonging to several lists is membership, not a
+// second copy — otherwise the same person is deduped at every send.
+model MarketingContact {
+  id         String  @id @default(uuid()) @db.Uuid
+  // Lower-cased on write, so it matches the suppression list exactly.
+  email      String  @unique
+  firstName  String? @map("first_name")
+  lastName   String? @map("last_name")
+  // Everything the CSV carried beyond the known columns.
+  customData Json    @default("{}") @map("custom_data")
+
+  // Set when an import or a send recognised this address as an existing
+  // lead. Informational only — the two records stay separate.
+  leadId String? @map("lead_id") @db.Uuid
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  memberships       ContactListMember[]
+  scheduledMessages ScheduledMessage[]
+
+  @@index([email])
+  @@index([deletedAt])
+  @@map("marketing_contacts")
+}
+
+model ContactListMember {
+  listId    String   @map("list_id") @db.Uuid
+  contactId String   @map("contact_id") @db.Uuid
+  addedAt   DateTime @default(now()) @map("added_at") @db.Timestamptz(6)
+
+  list    ContactList      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  contact MarketingContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([listId, contactId])
+  @@index([contactId])
+  @@map("contact_list_members")
+}
+
+// A campaign is a template, one or more lists and a time. It exists as a
+// draft before it has recipients, which is why it is not just a SendBatch —
+// but sending one creates a batch, and the batch machinery does the rest.
+model EmailCampaign {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String
+  status       CampaignStatus @default(DRAFT)
+  templateId   String?        @map("template_id") @db.Uuid
+  // The batch created when this campaign was sent.
+  batchId      String?        @map("batch_id") @db.Uuid
+  scheduledFor DateTime?      @map("scheduled_for") @db.Timestamptz(6)
+  startedAt    DateTime?      @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime?      @map("completed_at") @db.Timestamptz(6)
+  cancelledAt  DateTime?      @map("cancelled_at") @db.Timestamptz(6)
+
+  // Snapshot of the audience at send time, so the numbers on a sent
+  // campaign never move when a list is edited afterwards.
+  recipientCount Int   @default(0) @map("recipient_count")
+  skippedCount   Int   @default(0) @map("skipped_count")
+  skipReasons    Json? @map("skip_reasons")
+
+  createdById String?   @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  template MessageTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  batch    SendBatch?          @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  lists    EmailCampaignList[]
+
+  @@index([status, scheduledFor])
+  @@index([deletedAt])
+  @@map("email_campaigns")
+}
+
+model EmailCampaignList {
+  campaignId String @map("campaign_id") @db.Uuid
+  listId     String @map("list_id") @db.Uuid
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  list     ContactList   @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, listId])
+  @@index([listId])
+  @@map("email_campaign_lists")
 }

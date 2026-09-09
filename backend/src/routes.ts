@@ -14,6 +14,7 @@ import { chatbotRouter, chatbotWebhookRouter } from './modules/chatbot/chatbot.r
 import { mediaRouter, publicMediaRouter } from './modules/media/media.routes';
 import { notificationsRouter } from './modules/notifications/notification.routes';
 import { messagingRouter } from './modules/messaging/messaging.routes';
+import { marketingEmailRouter } from './modules/marketing-email/marketing.routes';
 import { publicMessagingRouter } from './modules/messaging/public.routes';
 import { blogsRouter, publicBlogsRouter } from './modules/blogs/blogs.routes';
 import { projectsRouter, publicProjectsRouter } from './modules/projects/projects.routes';
@@ -56,6 +57,7 @@ apiRouter.use('/chatbot', chatbotWebhookRouter); // HMAC-verified platform webho
 apiRouter.use('/chatbot', chatbotRouter); // staff chat-inbox API
 apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/messaging', messagingRouter); // templates, sequences, outbox
+apiRouter.use('/marketing-email', marketingEmailRouter); // contacts, lists, campaigns
 apiRouter.use('/public', publicMessagingRouter); // unsubscribe page + mail provider webhook, no auth
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/media', mediaRouter);

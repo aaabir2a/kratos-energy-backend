@@ -26,6 +26,9 @@ export const PERMISSIONS = [
   'projects.read', 'projects.write',
   // blogs (Blog Module)
   'blogs.read', 'blogs.write',
+  // email marketing (contacts, lists, campaigns) — admin only by default,
+  // widened through Administration → Roles & Permissions.
+  'marketing_email.read', 'marketing_email.write', 'marketing_email.send',
   // messaging (Stage 0 — templates, sequences, outbox)
   'messaging.read', 'messaging.write', 'messaging.send',
   // analytics (Phase 8)

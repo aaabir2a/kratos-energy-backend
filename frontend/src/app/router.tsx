@@ -25,6 +25,8 @@ import { MessagingSettingsPage } from '@/features/messaging/MessagingSettingsPag
 import { TemplateLibraryPage } from '@/features/messaging/TemplateLibraryPage';
 import { TemplateEditorPage } from '@/features/messaging/TemplateEditorPage';
 import { UnsubscribePage } from '@/features/messaging/UnsubscribePage';
+import { ContactListsPage } from '@/features/marketing-email/ContactListsPage';
+import { ContactListDetailPage } from '@/features/marketing-email/ContactListDetailPage';
 import { PublicLandingPage } from '@/features/marketing/PublicLandingPage';
 import { ProductsPage } from '@/features/catalog/ProductsPage';
 import { PackagesPage } from '@/features/catalog/PackagesPage';
@@ -64,6 +66,13 @@ export const router = createBrowserRouter([
           {
             element: <RequirePermission perm="sources.read" />,
             children: [{ path: '/sources', element: <SourcesPage /> }],
+          },
+          {
+            element: <RequirePermission perm="marketing_email.read" />,
+            children: [
+              { path: '/email/contacts', element: <ContactListsPage /> },
+              { path: '/email/contacts/:id', element: <ContactListDetailPage /> },
+            ],
           },
           {
             element: <RequirePermission perm="messaging.read" />,

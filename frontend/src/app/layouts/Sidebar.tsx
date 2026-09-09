@@ -22,6 +22,7 @@ import {
   Shuffle,
   SendHorizonal,
   Mails,
+  Users2,
   Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,14 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },
       { to: '/marketing', label: 'Landing Pages', icon: Megaphone, perm: 'landing_pages.read' },
       { to: '/marketing/forms', label: 'Lead Forms', icon: FormInput, perm: 'forms.read' },
+    ],
+  },
+  {
+    // Its own section, admin-only until the permission is granted elsewhere.
+    // A group whose every item fails its check is not rendered at all.
+    section: 'Email Marketing',
+    items: [
+      { to: '/email/contacts', label: 'Contact Lists', icon: Users2, perm: 'marketing_email.read' },
     ],
   },
   {
