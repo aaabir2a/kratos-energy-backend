@@ -14,9 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { apiErrorMessage } from '@/lib/api/client';
 import { templatesApi, sendApi, messagingApi, type SendFilters } from './api/messagingApi';
+import { ConfirmSendDialog } from './ConfirmSendDialog';
 
 interface Props {
   open: boolean;
@@ -102,7 +102,22 @@ export function SendEmailDialog({ open, onOpenChange, leadIds, filters, onSent }
   const nobody = p != null && p.screening.willSend === 0;
   const canSend = Boolean(templateId) && p != null && !capExceeded && !nobody;
 
+  // One phrasing of "when", used by both this dialog and the confirmation, so
+  // the two can never describe the same send differently.
+  const whenLabel =
+    schedule === 'later' && scheduledFor
+      ? `on ${new Date(scheduledFor).toLocaleString('en-AU', {
+          day: 'numeric',
+          month: 'short',
+          hour: 'numeric',
+          minute: '2-digit',
+        })}`
+      : quietHours
+        ? 'as soon as sending is allowed'
+        : 'immediately';
+
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(true) : close())}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -225,21 +240,28 @@ export function SendEmailDialog({ open, onOpenChange, leadIds, filters, onSent }
           <Button variant="ghost" onClick={close}>
             Cancel
           </Button>
-          {!confirming ? (
-            <Button disabled={!canSend} onClick={() => setConfirming(true)}>
-              <Send className="h-4 w-4" /> Review &amp; send
-            </Button>
-          ) : (
-            <Button disabled={!canSend || send.isPending} onClick={() => send.mutate()}>
-              {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Send to {p?.screening.willSend}{' '}
-              <Badge variant="secondary" className="ml-1 text-[10px]">
-                cannot be undone
-              </Badge>
-            </Button>
-          )}
+          <Button disabled={!canSend} onClick={() => setConfirming(true)}>
+            <Send className="h-4 w-4" /> Review &amp; send
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* A sibling, not a child: the confirmation owns focus outright rather
+        than contesting the trap of the dialog underneath it. */}
+    {p && (
+      <ConfirmSendDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        recipients={p.screening.willSend}
+        skipped={p.screening.skipped}
+        templateName={p.template.name}
+        whenLabel={whenLabel}
+        unrestricted={!quietHours}
+        sending={send.isPending}
+        onConfirm={() => send.mutate()}
+      />
+    )}
+    </>
   );
 }
