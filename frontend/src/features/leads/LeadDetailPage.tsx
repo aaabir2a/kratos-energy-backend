@@ -43,6 +43,7 @@ import { initials, formatDate } from '@/lib/utils';
 import { StatusBadge, PriorityDot, StageBadge, fullName } from './leadHelpers';
 import { isBuildLead, OriginBadge, BuildConfigCard } from './buildConfig';
 import { FormResponsesCard } from './FormResponsesCard';
+import { MessageHistory } from '@/features/messaging/MessageHistory';
 import type { LeadActivity } from '@/lib/api/types';
 
 const ACTIVITY_ICON: Record<LeadActivity['type'], React.ElementType> = {
@@ -373,6 +374,8 @@ export function LeadDetailPage() {
                 : null
             }
           />
+          {/* What the CRM has emailed this person, and whether they read it. */}
+          <MessageHistory leadId={l.id} />
           <Card>
             <CardHeader>
               <CardTitle>Contact</CardTitle>

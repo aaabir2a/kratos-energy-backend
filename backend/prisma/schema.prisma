@@ -1302,9 +1302,20 @@ model MessageEvent {
   providerEventId String?  @unique @map("provider_event_id")
   occurredAt      DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
 
+  // Scanners, security gateways and Apple Mail Privacy Protection open
+  // everything, so an unfiltered open rate reads near 100% and means nothing.
+  // These are recorded rather than discarded — a machine open still proves the
+  // mail was delivered — and excluded from the human numbers.
+  machine   Boolean @default(false)
+  /// Destination of a CLICKED event.
+  url       String?
+  userAgent String? @map("user_agent")
+
   message ScheduledMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([messageId, occurredAt])
+  // Analytics reads by type over a window, counting humans only.
+  @@index([type, machine, occurredAt])
   @@map("message_events")
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Search, MailX, Trash2, Users, ShieldAlert, Link2 } from 'lucide-react';
+import { ArrowLeft, Upload, Search, MailX, Trash2, Users, ShieldAlert, Link2, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/PageHeader';
 import { apiErrorMessage } from '@/lib/api/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
-import { listsApi, contactsApi } from './api/marketingApi';
+import { MessageHistory } from '@/features/messaging/MessageHistory';
+import { listsApi, contactsApi, type MarketingContact } from './api/marketingApi';
 import { ImportContactsDialog } from './ImportContactsDialog';
 
 export function ContactListDetailPage() {
@@ -26,6 +28,7 @@ export function ContactListDetailPage() {
   const [search, setSearch] = useState('');
   const [suppressedOnly, setSuppressedOnly] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [historyFor, setHistoryFor] = useState<MarketingContact | null>(null);
 
   const list = useQuery({ queryKey: ['marketing', 'lists', id], queryFn: () => listsApi.get(id) });
   const health = useQuery({ queryKey: ['marketing', 'lists', id, 'health'], queryFn: () => listsApi.health(id) });
@@ -200,6 +203,14 @@ export function ContactListDetailPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="What this contact has been sent"
+                      onClick={() => setHistoryFor(contact)}
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
                     {canWrite && (
                       <Button
                         variant="ghost"
@@ -220,6 +231,17 @@ export function ContactListDetailPage() {
       </Card>
 
       <ImportContactsDialog listId={id} open={importOpen} onOpenChange={setImportOpen} />
+
+      {/* Opened per row rather than expanded inline — a list of a few thousand
+          contacts must not fetch a history for every one of them. */}
+      <Dialog open={historyFor !== null} onOpenChange={(v) => !v && setHistoryFor(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{historyFor?.email}</DialogTitle>
+          </DialogHeader>
+          {historyFor && <MessageHistory contactId={historyFor.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

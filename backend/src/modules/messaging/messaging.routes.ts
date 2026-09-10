@@ -11,6 +11,7 @@ import { queueService } from './queue.service';
 import { sendService } from './send.service';
 import { sequenceService } from './sequence.service';
 import { tick } from './worker';
+import { trackingService } from './tracking.service';
 import {
   createTemplateSchema,
   updateTemplateSchema,
@@ -110,6 +111,23 @@ messagingRouter.get(
   '/queue/summary',
   requirePermission('messaging.read'),
   asyncHandler(async (_req, res) => ok(res, await queueService.summary())),
+);
+
+// What one recipient was sent, and what they did with it. A lead's history is
+// messaging.read; a marketing contact's is marketing_email.read, so widening
+// one does not quietly widen the other.
+messagingRouter.get(
+  '/history/lead/:id',
+  requirePermission('messaging.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await trackingService.historyFor({ leadId: req.params.id }))),
+);
+
+messagingRouter.get(
+  '/history/contact/:id',
+  requirePermission('marketing_email.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await trackingService.historyFor({ contactId: req.params.id }))),
 );
 
 messagingRouter.get(

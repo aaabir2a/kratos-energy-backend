@@ -1,4 +1,4 @@
-import { Router, type Request } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '../../core/database/prisma';
@@ -10,6 +10,8 @@ import { ok } from '../../shared/utils/response';
 import { AppError } from '../../shared/errors/AppError';
 import { outbox } from './outbox.service';
 import { verifyUnsubscribeToken } from './unsubscribe';
+import { verifyOpenToken, verifyClickToken } from './tracking';
+import { trackingService, recordInBackground } from './tracking.service';
 
 // Public, unauthenticated endpoints: the unsubscribe page a customer lands on
 // from an email footer, and the provider's delivery webhook. Both are mounted
@@ -75,6 +77,77 @@ publicMessagingRouter.post(
     ok(res, { address: parsed.address, unsubscribed: false });
   }),
 );
+
+// ── Open and click tracking ───────────────────────────
+
+/**
+ * A transparent 1×1 GIF, 43 bytes. Held as a constant rather than read from
+ * disk so the endpoint cannot fail on a missing file.
+ */
+const PIXEL = Buffer.from(
+  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+  'base64',
+);
+
+function sendPixel(res: Response): void {
+  res
+    .status(200)
+    .set({
+      'Content-Type': 'image/gif',
+      'Content-Length': String(PIXEL.length),
+      // Every open must reach us, so nothing may be cached anywhere.
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private, max-age=0',
+      Pragma: 'no-cache',
+      Expires: '0',
+    })
+    .end(PIXEL);
+}
+
+/**
+ * The open pixel. Always answers with the image — a bad, expired or tampered
+ * token returns exactly the same 43 bytes as a good one. A broken image in a
+ * customer's inbox is a worse outcome than a missed statistic, and answering
+ * differently would let anyone probe which tokens are real.
+ */
+publicMessagingRouter.get('/t/o/:token', (req, res) => {
+  const parsed = verifyOpenToken(req.params.token);
+  if (parsed) {
+    // Not awaited: the image goes back now, the write happens behind it.
+    recordInBackground(
+      trackingService.recordOpen(parsed.messageId, req.header('user-agent')),
+      'open',
+    );
+  }
+  sendPixel(res);
+});
+
+/**
+ * The click redirect.
+ *
+ * A token that does not verify is sent to the site's home page, never to a URL
+ * taken from the token itself — the destination is only trustworthy because the
+ * signature proves we minted it. Redirecting to unverified input would turn this
+ * host into an open redirect for phishing, which is a worse problem than the
+ * unreachable link it would be papering over.
+ */
+publicMessagingRouter.get('/t/c/:token', (req, res) => {
+  const parsed = verifyClickToken(req.params.token);
+
+  if (!parsed) {
+    logger.warn({ ip: req.ip }, 'tracking: click token failed verification');
+    const fallback = env.APP_BASE_URL || 'https://kratos-energy.com';
+    res.redirect(302, fallback);
+    return;
+  }
+
+  recordInBackground(
+    trackingService.recordClick(parsed.messageId, parsed.url, req.header('user-agent')),
+    'click',
+  );
+  // 302, not 301: a permanent redirect would be cached by the browser and the
+  // second click would never reach us.
+  res.redirect(302, parsed.url);
+});
 
 // ── Provider delivery webhook ─────────────────────────
 

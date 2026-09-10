@@ -282,3 +282,31 @@ export const dealFollowUpsApi = {
   forDeal: (dealId: string) =>
     api.get<ApiSuccess<Enrolment[]>>(`/messaging/deals/${dealId}/follow-ups`).then((r) => r.data.data),
 };
+
+// ── Per-recipient history (Stage 3 tracking) ──────────
+
+export interface MessageHistoryRow {
+  id: string;
+  subject: string | null;
+  status: MessageStatus;
+  toEmail: string | null;
+  scheduledFor: string;
+  sentAt: string | null;
+  skipReason: string | null;
+  lastError: string | null;
+  template: { id: string; name: string } | null;
+  /** First open by a person — a scanner's open does not fill this. */
+  openedAt: string | null;
+  clickedAt: string | null;
+  clickedUrls: string[];
+  bounced: boolean;
+  /** Opened, but only ever by software. */
+  machineOnly: boolean;
+}
+
+export const historyApi = {
+  forLead: (leadId: string) =>
+    api.get<ApiSuccess<MessageHistoryRow[]>>(`/messaging/history/lead/${leadId}`).then((r) => r.data.data),
+  forContact: (contactId: string) =>
+    api.get<ApiSuccess<MessageHistoryRow[]>>(`/messaging/history/contact/${contactId}`).then((r) => r.data.data),
+};

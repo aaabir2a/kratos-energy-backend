@@ -65,6 +65,10 @@ const envSchema = z.object({
   // Verifies provider delivery/bounce webhooks. Empty => the endpoint rejects
   // everything, which is the safe default for an unauthenticated route.
   MAIL_WEBHOOK_SECRET: z.string().default(''),
+  // Public origin for tracking pixels and click links in email, e.g.
+  // https://api.kratos-energy.com/api/v1. Empty => derived from APP_BASE_URL +
+  // API_PREFIX, which works because the CRM host proxies /api to this service.
+  PUBLIC_API_BASE_URL: z.string().default(''),
 
   // Chatbot platform (CRM_DEVELOPER_GUIDE.md). Key empty => integration disabled.
   CHATBOT_API_BASE: z.string().url().default('https://api.ambrosianuk.com'),

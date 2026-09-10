@@ -8,6 +8,8 @@ import { retryDelayMs } from './timing';
 import { renderTemplate, type MergeData } from './merge';
 import { normaliseAddress } from './outbox.service';
 import { unsubscribeUrl } from './unsubscribe';
+import { rewriteLinks, trackingPixel } from './tracking';
+import { trackingBaseUrl } from './tracking.service';
 
 // The drain side of the outbox: a plain interval in the API process, not a
 // separate service. The database is the queue (see the build plan) — Redis in
@@ -156,10 +158,16 @@ async function deliver(id: string): Promise<'sent' | 'failed' | 'skipped'> {
   const unsubUrl = unsubscribeUrl('EMAIL', address, message.leadId);
   const unsubHref = unsubUrl ?? `mailto:info@kratos-energy.com?subject=Unsubscribe%20${encodeURIComponent(address)}`;
 
+  // Tracking is applied to the body only, and after the merge fields are
+  // resolved, so a rewritten link can never end up inside a stored template.
+  // The unsubscribe link is left alone by rewriteLinks — see there for why.
+  const trackBase = trackingBaseUrl();
+  const trackedHtml = rewriteLinks(bodyHtml, id, trackBase) + trackingPixel(id, trackBase);
+
   const result = await sendMail({
     to: address,
     subject: subject || '(no subject)',
-    html: emailShell(subject || '', [bodyHtml], undefined, {
+    html: emailShell(subject || '', [trackedHtml], undefined, {
       footerNote: 'You are receiving this because you enquired with Kratos Sustainability.',
       footerHtml: `<a href="${unsubHref}" style="color:#94a3b8">Unsubscribe</a>`,
     }),
@@ -236,6 +244,16 @@ export async function requeueStranded(olderThanMs = 10 * 60_000): Promise<number
 
 export function startWorker(): void {
   if (timer) return;
+
+  // Tracking needs a public URL to point at. Without one it degrades to
+  // sending untracked mail, which is the right behaviour but an easy thing to
+  // not notice for weeks — so say so at boot, the way the mail check does.
+  if (!trackingBaseUrl()) {
+    logger.warn(
+      'Messaging: opens and clicks are not tracked — set APP_BASE_URL (or PUBLIC_API_BASE_URL) to enable them',
+    );
+  }
+
   void requeueStranded().catch((err) => logger.error({ err }, 'requeue on boot failed'));
   timer = setInterval(() => {
     // Skip a tick rather than overlap if the previous one is still going.
