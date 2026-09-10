@@ -148,3 +148,77 @@ export const campaignsApi = {
     api.post<ApiSuccess<{ cancelled: number }>>(`/marketing-email/campaigns/${id}/cancel`).then((r) => r.data.data),
   remove: (id: string) => api.delete(`/marketing-email/campaigns/${id}`),
 };
+
+// ── Analytics (Stage 4) ───────────────────────────────
+
+export interface CampaignStats {
+  recipients: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  complained: number;
+  unsubscribed: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  /** Opens attributed to software rather than a person. */
+  machineOpens: number;
+  rates: { openRate: number; clickRate: number; bounceRate: number; unsubscribeRate: number };
+  /** Nothing is filling delivered/bounced — the provider webhook is not wired up. */
+  deliveryEventsMissing: boolean;
+}
+
+export interface CampaignAnalyticsRow {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  templateName: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  stats: CampaignStats;
+}
+
+export interface SeriesPoint {
+  day: string;
+  sent: number;
+  opened: number;
+  clicked: number;
+}
+
+export interface ClickedLink {
+  url: string;
+  clicks: number;
+  people: number;
+}
+
+export interface EmailOverview {
+  windowDays: number;
+  lists: number;
+  contacts: number;
+  suppressed: number;
+  campaigns: number;
+  totals: CampaignStats;
+  recent: CampaignAnalyticsRow[];
+  series: SeriesPoint[];
+}
+
+export const analyticsApi = {
+  overview: (days = 30) =>
+    api
+      .get<ApiSuccess<EmailOverview>>('/marketing-email/analytics/overview', { params: { days } })
+      .then((r) => r.data.data),
+  campaigns: (limit = 20) =>
+    api
+      .get<ApiSuccess<CampaignAnalyticsRow[]>>('/marketing-email/analytics/campaigns', { params: { limit } })
+      .then((r) => r.data.data),
+  series: (days = 30) =>
+    api
+      .get<ApiSuccess<SeriesPoint[]>>('/marketing-email/analytics/series', { params: { days } })
+      .then((r) => r.data.data),
+  stats: (id: string) =>
+    api.get<ApiSuccess<CampaignStats>>(`/marketing-email/campaigns/${id}/stats`).then((r) => r.data.data),
+  links: (id: string) =>
+    api.get<ApiSuccess<ClickedLink[]>>(`/marketing-email/campaigns/${id}/links`).then((r) => r.data.data),
+};

@@ -155,7 +155,7 @@ async function deliver(id: string): Promise<'sent' | 'failed' | 'skipped'> {
 
   // One-click unsubscribe, honoured automatically. Falls back to a monitored
   // mailbox when APP_BASE_URL is unset and there is no page to link to.
-  const unsubUrl = unsubscribeUrl('EMAIL', address, message.leadId);
+  const unsubUrl = unsubscribeUrl('EMAIL', address, message.leadId, id);
   const unsubHref = unsubUrl ?? `mailto:info@kratos-energy.com?subject=Unsubscribe%20${encodeURIComponent(address)}`;
 
   // Tracking is applied to the body only, and after the merge fields are

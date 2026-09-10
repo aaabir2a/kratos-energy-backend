@@ -11,6 +11,7 @@ import { AppError } from '../../shared/errors/AppError';
 import { contactsService } from './contacts.service';
 import { importService } from './import.service';
 import { campaignService } from './campaign.service';
+import { analyticsService } from './analytics.service';
 import {
   createListSchema,
   updateListSchema,
@@ -24,6 +25,7 @@ import {
   updateCampaignSchema,
   campaignQuerySchema,
   sendCampaignSchema,
+  analyticsQuerySchema,
   idParamSchema,
 } from './marketing.schema';
 
@@ -288,4 +290,51 @@ marketingEmailRouter.post(
     });
     ok(res, result);
   }),
+);
+
+// ── Analytics ─────────────────────────────────────────
+
+// The section's landing page: list sizes, send volume, headline rates.
+marketingEmailRouter.get(
+  '/analytics/overview',
+  requirePermission('marketing_email.read'),
+  validate({ query: analyticsQuerySchema }),
+  asyncHandler(async (req, res) =>
+    ok(res, await analyticsService.overview(Number(req.query.days ?? 30))),
+  ),
+);
+
+// Every campaign that has sent, with its numbers.
+marketingEmailRouter.get(
+  '/analytics/campaigns',
+  requirePermission('marketing_email.read'),
+  validate({ query: analyticsQuerySchema }),
+  asyncHandler(async (req, res) =>
+    ok(res, await analyticsService.campaigns(Number(req.query.limit ?? 20))),
+  ),
+);
+
+// Send volume and engagement per day, zero-filled.
+marketingEmailRouter.get(
+  '/analytics/series',
+  requirePermission('marketing_email.read'),
+  validate({ query: analyticsQuerySchema }),
+  asyncHandler(async (req, res) =>
+    ok(res, await analyticsService.timeSeries(Number(req.query.days ?? 30))),
+  ),
+);
+
+marketingEmailRouter.get(
+  '/campaigns/:id/stats',
+  requirePermission('marketing_email.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await analyticsService.campaign(req.params.id))),
+);
+
+// Which links people actually followed.
+marketingEmailRouter.get(
+  '/campaigns/:id/links',
+  requirePermission('marketing_email.read'),
+  validate({ params: idParamSchema }),
+  asyncHandler(async (req, res) => ok(res, await analyticsService.links(req.params.id))),
 );

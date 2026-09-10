@@ -24,6 +24,8 @@ import {
   Mails,
   Users2,
   Clock,
+  Gauge,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -42,26 +44,45 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }],
   },
   {
+    // The day-to-day work: a person, their deal, what we have sent them and
+    // what they have said back.
     section: 'CRM',
     items: [
       { to: '/leads', label: 'Leads', icon: Target, perm: 'leads.read' },
-      { to: '/chat', label: 'Chat Inbox', icon: MessageSquare, perm: 'leads.read' },
-      { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
-      { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
-      { to: '/messaging/templates', label: 'Email Templates', icon: Mails, perm: 'messaging.read' },
-      { to: '/messaging/queue', label: 'Send Queue', icon: SendHorizonal, perm: 'messaging.read' },
       { to: '/deals', label: 'Deals', icon: Handshake, perm: 'deals.read' },
+      // One-to-one mail to leads and customers, as opposed to a campaign.
+      { to: '/messaging/queue', label: 'Customer Mail', icon: SendHorizonal, perm: 'messaging.read' },
+      { to: '/chat', label: 'Chat Inbox', icon: MessageSquare, perm: 'leads.read' },
+    ],
+  },
+  {
+    // Mostly admin-only until the permission is granted elsewhere. A group
+    // whose every item fails its check is not rendered at all — which is why
+    // Email Templates sits here on its own for a role that has messaging.read
+    // but not marketing_email.read.
+    section: 'Email Marketing',
+    items: [
+      { to: '/email/overview', label: 'Overview', icon: Gauge, perm: 'marketing_email.read' },
+      { to: '/email/campaigns', label: 'Campaigns', icon: Megaphone, perm: 'marketing_email.read' },
+      { to: '/email/contacts', label: 'Contact Lists', icon: Users2, perm: 'marketing_email.read' },
+      { to: '/email/analytics', label: 'Analytics', icon: BarChart3, perm: 'marketing_email.read' },
+      // Shared by campaigns and customer mail, so it is not owned by either.
+      { to: '/messaging/templates', label: 'Email Templates', icon: Mails, perm: 'messaging.read' },
+    ],
+  },
+  {
+    // Where leads come from, before they are leads.
+    section: 'Marketing',
+    items: [
       { to: '/marketing', label: 'Landing Pages', icon: Megaphone, perm: 'landing_pages.read' },
       { to: '/marketing/forms', label: 'Lead Forms', icon: FormInput, perm: 'forms.read' },
     ],
   },
   {
-    // Its own section, admin-only until the permission is granted elsewhere.
-    // A group whose every item fails its check is not rendered at all.
-    section: 'Email Marketing',
+    section: 'Insights',
     items: [
-      { to: '/email/contacts', label: 'Contact Lists', icon: Users2, perm: 'marketing_email.read' },
-      { to: '/email/campaigns', label: 'Campaigns', icon: Megaphone, perm: 'marketing_email.read' },
+      { to: '/pipeline', label: 'Pipeline', icon: KanbanSquare, perm: 'pipeline.read' },
+      { to: '/sources', label: 'Sources', icon: Share2, perm: 'sources.read' },
     ],
   },
   {

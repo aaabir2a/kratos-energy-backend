@@ -13,6 +13,15 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
+    /* Chart series. Three separable hues rather than the brand green and teal,
+       which sit too close together to tell apart. Checked against the card
+       surface for lightness, chroma, colour-blind separation on every pair and
+       contrast; the dark steps below are chosen for their own surface, not
+       lightened from these. Series are direct-labelled as well as coloured. */
+    --chart-1: #0e7a9f;
+    --chart-2: #649f14;
+    --chart-3: #bf3d7a;
+
     /* Solar amber primary */
     --primary: 32 95% 44%;
     --primary-foreground: 0 0% 100%;
@@ -51,6 +60,10 @@
 
     --popover: 222 44% 10%;
     --popover-foreground: 210 40% 96%;
+
+    --chart-1: #2a95bb;
+    --chart-2: #6aa522;
+    --chart-3: #d15c92;
 
     --primary: 32 95% 50%;
     --primary-foreground: 222 47% 8%;

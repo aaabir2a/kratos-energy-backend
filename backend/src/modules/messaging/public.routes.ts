@@ -52,6 +52,28 @@ publicMessagingRouter.post(
     // suppress() also cancels anything already queued for the address, so a
     // sequence part-way through stops immediately rather than eventually.
     await outbox.suppress(parsed.channel, parsed.address, 'UNSUBSCRIBED', parsed.leadId ?? null);
+
+    // Attribute it to the message that prompted it, when the link carries one:
+    // which campaign drove people away is the number worth knowing. Links
+    // minted before this existed simply do not attribute.
+    if (parsed.messageId) {
+      const exists = await prisma.scheduledMessage.findUnique({
+        where: { id: parsed.messageId },
+        select: { id: true },
+      });
+      const already =
+        exists &&
+        (await prisma.messageEvent.findFirst({
+          where: { messageId: parsed.messageId, type: 'UNSUBSCRIBED' },
+          select: { id: true },
+        }));
+      if (exists && !already) {
+        await prisma.messageEvent.create({
+          data: { messageId: parsed.messageId, type: 'UNSUBSCRIBED' },
+        });
+      }
+    }
+
     logger.info({ channel: parsed.channel }, 'unsubscribe honoured');
     ok(res, { address: parsed.address, unsubscribed: true });
   }),

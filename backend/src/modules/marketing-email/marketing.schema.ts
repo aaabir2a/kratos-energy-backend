@@ -93,3 +93,13 @@ export const sendCampaignSchema = z.object({
 
 export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
+
+// ── Analytics ─────────────────────────────────────────
+
+export const analyticsQuerySchema = z.object({
+  /** Rolling window for the overview and the chart. */
+  days: z.coerce.number().int().min(1).max(365).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>;

@@ -16,6 +16,30 @@ describe('makeUnsubscribeToken / verifyUnsubscribeToken', () => {
     expect(verifyUnsubscribeToken(token)?.leadId).toBe('lead-1');
   });
 
+  // Analytics attributes an unsubscribe to the message that prompted it.
+  it('carries the message id when given one', () => {
+    const token = makeUnsubscribeToken('EMAIL', 'jo@example.com', 'lead-1', 'msg-9');
+    expect(verifyUnsubscribeToken(token)).toMatchObject({ leadId: 'lead-1', messageId: 'msg-9' });
+  });
+
+  // Links minted before the message id existed are already in inboxes. They
+  // must keep working — they simply do not attribute.
+  it('still verifies a token that predates the message id', () => {
+    const old = makeUnsubscribeToken('EMAIL', 'jo@example.com', 'lead-1');
+    const parsed = verifyUnsubscribeToken(old);
+    expect(parsed?.address).toBe('jo@example.com');
+    expect(parsed?.messageId).toBeUndefined();
+  });
+
+  it('adding a message id does not change what an existing link means', () => {
+    const withMessage = verifyUnsubscribeToken(
+      makeUnsubscribeToken('EMAIL', 'jo@example.com', 'lead-1', 'msg-9'),
+    );
+    const without = verifyUnsubscribeToken(makeUnsubscribeToken('EMAIL', 'jo@example.com', 'lead-1'));
+    expect(withMessage?.address).toBe(without?.address);
+    expect(withMessage?.channel).toBe(without?.channel);
+  });
+
   // Suppression is keyed on the normalised address, so the token must be too,
   // or unsubscribing would record an address the sender never checks.
   it('normalises the address before signing', () => {

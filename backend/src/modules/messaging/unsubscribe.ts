@@ -16,6 +16,15 @@ interface TokenPayload {
   a: string;
   /** Lead id, so an unsubscribe can be attributed to a person. */
   l?: string;
+  /**
+   * Message id, so an unsubscribe can be attributed to what prompted it —
+   * which campaign drove people away is the number worth knowing.
+   *
+   * Optional on purpose: links already sitting in inboxes were minted without
+   * it and must keep working. They verify the same way and simply do not
+   * attribute.
+   */
+  m?: string;
 }
 
 function secret(): string {
@@ -34,9 +43,11 @@ export function makeUnsubscribeToken(
   channel: MessageChannel,
   address: string,
   leadId?: string | null,
+  messageId?: string | null,
 ): string {
   const payload: TokenPayload = { c: channel, a: normaliseAddress(channel, address) };
   if (leadId) payload.l = leadId;
+  if (messageId) payload.m = messageId;
   const body = b64url(Buffer.from(JSON.stringify(payload)));
   return `${body}.${sign(body)}`;
 }
@@ -45,6 +56,7 @@ export interface VerifiedToken {
   channel: MessageChannel;
   address: string;
   leadId?: string;
+  messageId?: string;
 }
 
 /** Returns null for anything that is not a token we signed. */
@@ -59,15 +71,20 @@ export function verifyUnsubscribeToken(token: string): VerifiedToken | null {
   try {
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as TokenPayload;
     if (!payload.a || (payload.c !== 'EMAIL' && payload.c !== 'SMS')) return null;
-    return { channel: payload.c, address: payload.a, leadId: payload.l };
+    return { channel: payload.c, address: payload.a, leadId: payload.l, messageId: payload.m };
   } catch {
     return null;
   }
 }
 
 /** The link that goes in the footer of customer mail. */
-export function unsubscribeUrl(channel: MessageChannel, address: string, leadId?: string | null): string | null {
+export function unsubscribeUrl(
+  channel: MessageChannel,
+  address: string,
+  leadId?: string | null,
+  messageId?: string | null,
+): string | null {
   if (!env.APP_BASE_URL) return null;
-  const token = makeUnsubscribeToken(channel, address, leadId);
+  const token = makeUnsubscribeToken(channel, address, leadId, messageId);
   return `${env.APP_BASE_URL.replace(/\/$/, '')}/unsubscribe/${token}`;
 }
