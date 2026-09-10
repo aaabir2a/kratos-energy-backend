@@ -82,7 +82,7 @@ export function MessageQueuePage() {
   return (
     <div>
       <PageHeader
-        title="Send queue"
+        title="Customer mail"
         description="Everything waiting to go out, and what has just been through."
       />
 

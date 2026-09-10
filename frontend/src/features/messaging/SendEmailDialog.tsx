@@ -73,7 +73,7 @@ export function SendEmailDialog({ open, onOpenChange, leadIds, filters, onSent }
       }),
     onSuccess: (r) => {
       toast.success(
-        `${r.queued} message${r.queued === 1 ? '' : 's'} queued — track them on the send queue`,
+        `${r.queued} message${r.queued === 1 ? '' : 's'} queued — track them under Customer Mail`,
       );
       onSent?.();
       close();

@@ -228,7 +228,7 @@ export function CampaignBuilderPage() {
             )}
             {c.progress.failed > 0 && (
               <p className="mt-3 text-xs text-muted-foreground">
-                Failed messages are retried a few times before they are given up on — the send queue shows
+                Failed messages are retried a few times before they are given up on — Customer Mail shows
                 the provider's reason for each.
               </p>
             )}
